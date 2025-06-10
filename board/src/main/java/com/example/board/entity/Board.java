@@ -2,9 +2,12 @@ package com.example.board.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.http.ResponseEntity;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
-import java.util.Optional;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -12,7 +15,9 @@ import java.util.Optional;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class) //날짜
 public class Board {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long postId;
@@ -24,21 +29,22 @@ public class Board {
 
     private String writer;
 
-    private String createdDate;
-    private String modifiedDate;
+    @CreatedDate
+    @Column(updatable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss") // 응답 포맷 지정 (선택)
+    private LocalDateTime createdDate;
+
+    @LastModifiedDate
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss") // 응답 포맷 지정 (선택)
+    private LocalDateTime modifiedDate;
+
     private Integer likeCount;
 
-    public void ifPresent(Object board) {
-    }
+   // @OneToMany(mappedBy = "board",cascade = CascadeType.ALL,orphanRemoval = true)
+    private String imageUrl;
 
     public void update(String title, String content) {
         this.title = title;
         this.content = content;
     }
-
-    public Optional<ResponseEntity<Object>> map(Object o) {
-        return Optional.empty();
-    }
-
-
 }

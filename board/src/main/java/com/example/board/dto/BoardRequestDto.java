@@ -16,5 +16,7 @@ public class BoardRequestDto {
     private String author;
     private Integer likeCount;
 
+    private String imageUrl;
+    private String deleteImage;
 }
 
