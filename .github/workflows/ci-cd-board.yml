@@ -41,8 +41,7 @@ jobs:
 
     - name: Build board project
       working-directory: board
-      run: ./gradlew clean build
-
+      run: ./gradlew clean bootJar
 
     - name: Build Docker image
       working-directory: board
