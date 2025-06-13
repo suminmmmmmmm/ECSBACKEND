@@ -1,0 +1,48 @@
+name: CI/CD - Board Service
+
+on:
+  push:
+    paths:
+      - 'board/**'
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Build board project
+      working-directory: board
+      run: ./gradlew clean build
+
+    - name: Build Docker image
+      working-directory: board
+      run: docker build -t ${{ secrets.DOCKER_USERNAME }}/ecs-board:latest .
+
+    - name: DockerHub login
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+    - name: Push Docker image
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/ecs-board:latest
+
+    - name: SSH Deploy to EC2
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          docker stop ecs-board || true
+          docker rm ecs-board || true
+          docker pull ${{ secrets.DOCKER_USERNAME }}/ecs-board:latest
+          docker run -d --name ecs-board -p 8080:8080 ${{ secrets.DOCKER_USERNAME }}/ecs-board:latest
