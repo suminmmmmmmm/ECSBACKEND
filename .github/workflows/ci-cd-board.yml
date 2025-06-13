@@ -43,8 +43,6 @@ jobs:
       working-directory: board
       run: ./gradlew clean build
 
-    - name: Debug Secret Value
-      run: echo "DOCKER_USERNAME is: ${{ secrets.DOCKER_USERNAME }}"
 
     - name: Build Docker image
       working-directory: board
