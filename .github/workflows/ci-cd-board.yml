@@ -21,6 +21,9 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
+    - name: Ensure gradlew is executable
+      run: chmod +x board/gradlew
+
     - name: Build board project
       working-directory: board
       run: ./gradlew clean build
