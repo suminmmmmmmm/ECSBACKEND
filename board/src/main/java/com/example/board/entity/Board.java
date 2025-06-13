@@ -1,13 +1,16 @@
 package com.example.board.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -15,7 +18,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@EntityListeners(AuditingEntityListener.class) //날짜
+@EntityListeners(AuditingEntityListener.class)
 public class Board {
 
     @Id
@@ -31,17 +34,19 @@ public class Board {
 
     @CreatedDate
     @Column(updatable = false)
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss") // 응답 포맷 지정 (선택)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdDate;
 
     @LastModifiedDate
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss") // 응답 포맷 지정 (선택)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime modifiedDate;
 
     private Integer likeCount;
 
-   // @OneToMany(mappedBy = "board",cascade = CascadeType.ALL,orphanRemoval = true)
-    private String imageUrl;
+    // 여러 이미지 연관관계
+    @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<BoardImage> images = new ArrayList<>();
 
     public void update(String title, String content) {
         this.title = title;

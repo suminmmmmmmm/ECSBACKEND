@@ -21,16 +21,16 @@ public class BoardService {
         return boardRepository.findAll();
     }
 
-    public Board findById(String id){
-        return boardRepository.findById(id).orElseThrow();
+    public Board findById(Long id){
+        return boardRepository.findById(String.valueOf(id)).orElseThrow();
     }
 
     public Board save(Board board){
         return boardRepository.save(board);
     }
 
-    public void delete(String id){
-        boardRepository.deleteById(id);
+    public void delete(Long id){
+        boardRepository.deleteById(String.valueOf(id));
     }
 
     //글 수정
