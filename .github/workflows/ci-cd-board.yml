@@ -33,6 +33,10 @@ jobs:
         working-directory: board
         run: ./gradlew clean bootJar
 
+      - name: Debug build output
+        working-directory: board
+        run: ls -al build/libs
+
       - name: Upload JAR to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
