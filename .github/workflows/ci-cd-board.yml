@@ -34,8 +34,8 @@ jobs:
         run: ./gradlew clean bootJar
 
       - name: Rename JAR file for deployment
-        working-directory: board/build/libs
-        run: mv *.jar run.jar
+        working-directory: board
+        run: mv ./build/libs/*.jar ./build/libs/run.jar
 
       - name: Upload JAR to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -46,15 +46,6 @@ jobs:
           source: board/build/libs/run.jar
           target: /home/ubuntu/server/demo/board
 
-      - name: Upload application.properties to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          source: board/src/main/resources/application.properties
-          target: /home/ubuntu/server/demo/board/src/main/resources/
-
       - name: Run JAR on EC2
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -64,10 +55,8 @@ jobs:
           script_stop: true
           script: |
             set -x
-            rm -rf /home/ubuntu/server/web
             mkdir -p /home/ubuntu/server/web
             mv /home/ubuntu/server/demo/board/run.jar /home/ubuntu/server/web/app.jar
             cd /home/ubuntu/server/web
             sudo fuser -k -n tcp 8080 || true
             nohup java -jar app.jar > output.log 2>&1 &
-            rm -rf /home/ubuntu/server/demo
