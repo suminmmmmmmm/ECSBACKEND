@@ -34,9 +34,8 @@ jobs:
         run: ./gradlew clean bootJar
 
       - name: Rename JAR file for deployment
-        working-directory: board/build/libs
         run: |
-          JAR_NAME=$(ls *.jar | head -n 1)
+          JAR_NAME=$(ls board/build/libs/*.jar | head -n 1)
           cp "$JAR_NAME" run.jar
 
       - name: Upload JAR to EC2
@@ -45,7 +44,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
-          source: board/build/libs/run.jar
+          source: run.jar
           target: /home/ubuntu/server/demo/board
 
       - name: Upload application.properties to EC2
