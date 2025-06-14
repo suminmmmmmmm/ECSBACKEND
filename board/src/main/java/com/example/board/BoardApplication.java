@@ -15,7 +15,7 @@ public class BoardApplication {
 
         SpringApplication.run(BoardApplication.class, args);
 
-        println("test");
+        println("sisi");
     }
 
 }
