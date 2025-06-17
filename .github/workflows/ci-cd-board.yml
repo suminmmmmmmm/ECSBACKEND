@@ -1,9 +1,10 @@
-name: CI/CD - Board Service
+name: CI/CD - Board & User Service
 
 on:
   push:
     paths:
       - 'board/**'
+      - 'user/**'
     branches:
       - main
 
@@ -21,33 +22,62 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Create application.properties
+      # Board properties 생성
+      - name: Create board application.properties
         run: |
           mkdir -p board/src/main/resources
           echo "${{ secrets.APPLICATION_PRO }}" > board/src/main/resources/application.properties
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x board/gradlew
+      # User properties 생성
+      - name: Create user application.properties
+        run: |
+          mkdir -p user/src/main/resources
+          echo "${{ secrets.APPLICATION_USER }}" > user/src/main/resources/application.properties
 
-      - name: Build with Gradle (bootJar)
+      # 실행 권한 부여
+      - name: Grant execute permission for gradlew
+        run: |
+          chmod +x board/gradlew
+          chmod +x user/gradlew
+
+      # Board 빌드
+      - name: Build board with Gradle (bootJar)
         working-directory: board
         run: ./gradlew clean bootJar
 
-      - name: Rename JAR file for deployment
-        run: |
-          JAR_NAME=$(ls board/build/libs/*.jar | head -n 1)
-          cp "$JAR_NAME" run.jar
+      # User 빌드
+      - name: Build user with Gradle (bootJar)
+        working-directory: user
+        run: ./gradlew clean bootJar
 
-      - name: Upload JAR to EC2
+      # JAR 이름 정리
+      - name: Rename JARs for deployment
+        run: |
+          cp $(ls board/build/libs/*.jar | head -n 1) board-run.jar
+          cp $(ls user/build/libs/*.jar | head -n 1) user-run.jar
+
+      # Board JAR 업로드
+      - name: Upload board JAR to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
-          source: run.jar
+          source: board-run.jar
           target: /home/ubuntu/server/demo/board
 
-      - name: Upload application.properties to EC2
+      # User JAR 업로드
+      - name: Upload user JAR to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          source: user-run.jar
+          target: /home/ubuntu/server/demo/user
+
+      # Board properties 업로드
+      - name: Upload board properties to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -56,7 +86,18 @@ jobs:
           source: board/src/main/resources/application.properties
           target: /home/ubuntu/server/demo/board/src/main/resources/
 
-      - name: Run JAR on EC2
+      # User properties 업로드
+      - name: Upload user properties to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          source: user/src/main/resources/application.properties
+          target: /home/ubuntu/server/demo/user/src/main/resources/
+
+      # EC2 서버에서 실행
+      - name: Run board & user on EC2
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -67,8 +108,11 @@ jobs:
             set -x
             rm -rf /home/ubuntu/server/web
             mkdir -p /home/ubuntu/server/web
-            mv /home/ubuntu/server/demo/board/run.jar /home/ubuntu/server/web/app.jar
+            mv /home/ubuntu/server/demo/board/board-run.jar /home/ubuntu/server/web/board.jar
+            mv /home/ubuntu/server/demo/user/user-run.jar /home/ubuntu/server/web/user.jar
             cd /home/ubuntu/server/web
             sudo fuser -k -n tcp 8080 || true
-            nohup java -jar app.jar > output.log 2>&1 &
+            sudo fuser -k -n tcp 8081 || true
+            nohup java -jar board.jar > board.log 2>&1 &
+            nohup java -jar user.jar --server.port=8081 > user.log 2>&1 &
             rm -rf /home/ubuntu/server/demo
