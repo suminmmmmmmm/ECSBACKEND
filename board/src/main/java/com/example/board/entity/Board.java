@@ -9,6 +9,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,16 +33,26 @@ public class Board {
 
     private String writer;
 
+//    @CreatedDate
+//    @Column(updatable = false)
+//    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
+//    private LocalDateTime createdDate;
+//
+//    @LastModifiedDate
+//    @Column
+//    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
+//    private ZonedDateTime modifiedDate;
+
+
     @CreatedDate
     @Column(updatable = false)
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
     private LocalDateTime createdDate;
 
     @LastModifiedDate
     @Column
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
     private LocalDateTime modifiedDate;
-
     private Integer likeCount;
 
     // 여러 이미지 연관관계

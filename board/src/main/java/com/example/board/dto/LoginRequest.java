@@ -1,4 +1,4 @@
-package com.example.userservice.dto;
+package com.example.board.dto;
 
 public class LoginRequest {
 

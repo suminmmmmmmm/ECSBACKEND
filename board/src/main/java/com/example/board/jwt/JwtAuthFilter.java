@@ -1,4 +1,4 @@
-package com.example.userservice.jwt;
+package com.example.board.jwt;
 
 import java.io.IOException;
 
@@ -28,6 +28,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+
+        String uri = request.getRequestURI();
+
+        // ✅ 인증 없이 허용할 경로 예외 처리
+        if (uri.startsWith("/auth") || uri.startsWith("/api/boards")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {

@@ -1,11 +1,6 @@
-package com.example.userservice.entity;
+package com.example.board.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "users") // 'user'는 SQL 예약어라 이름을 바꿔줌

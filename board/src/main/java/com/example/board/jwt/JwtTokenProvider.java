@@ -1,4 +1,4 @@
-package com.example.userservice.jwt;
+package com.example.board.jwt;
 
 import java.util.Date;
 

@@ -1,10 +1,10 @@
-package com.example.userservice.repository;
+package com.example.board.repository;
 
-import java.util.Optional;
 
+import com.example.board.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.example.userservice.entity.User;
+import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
