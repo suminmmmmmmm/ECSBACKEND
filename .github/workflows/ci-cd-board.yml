@@ -1,10 +1,9 @@
-name: CI/CD - Board & User Service
+name: CI/CD - Monolithic App
 
 on:
   push:
     paths:
-      - 'board/**'
-      - 'user/**'
+      - '**' # 전체 경로 감지 (또는 'src/**', 'build.gradle', 'application.properties' 등으로 좁혀도 됨)
     branches:
       - main
 
@@ -22,82 +21,39 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Board properties 생성
-      - name: Create board application.properties
+      - name: Create application.properties
         run: |
-          mkdir -p board/src/main/resources
-          echo "${{ secrets.APPLICATION_PRO }}" > board/src/main/resources/application.properties
+          mkdir -p src/main/resources
+          echo "${{ secrets.APPLICATION_PRO }}" > src/main/resources/application.properties
 
-      # User properties 생성
-      - name: Create user application.properties
-        run: |
-          mkdir -p user/src/main/resources
-          echo "${{ secrets.APPLICATION_USER }}" > user/src/main/resources/application.properties
-
-      # 실행 권한 부여
       - name: Grant execute permission for gradlew
-        run: |
-          chmod +x board/gradlew
-          chmod +x user/gradlew
+        run: chmod +x ./gradlew
 
-      # Board 빌드
-      - name: Build board with Gradle (bootJar)
-        working-directory: board
+      - name: Build with Gradle
         run: ./gradlew clean bootJar
 
-      # User 빌드
-      - name: Build user with Gradle (bootJar)
-        working-directory: user
-        run: ./gradlew clean bootJar
+      - name: Rename JAR for deployment
+        run: cp $(ls build/libs/*.jar | head -n 1) app.jar
 
-      # JAR 이름 정리
-      - name: Rename JARs for deployment
-        run: |
-          cp $(ls board/build/libs/*.jar | head -n 1) board-run.jar
-          cp $(ls user/build/libs/*.jar | head -n 1) user-run.jar
-
-      # Board JAR 업로드
-      - name: Upload board JAR to EC2
+      - name: Upload JAR to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
-          source: board-run.jar
-          target: /home/ubuntu/server/demo/board
+          source: app.jar
+          target: /home/ubuntu/server/app/
 
-      # User JAR 업로드
-      - name: Upload user JAR to EC2
+      - name: Upload properties to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
-          source: user-run.jar
-          target: /home/ubuntu/server/demo/user
+          source: src/main/resources/application.properties
+          target: /home/ubuntu/server/app/src/main/resources/
 
-      # Board properties 업로드
-      - name: Upload board properties to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          source: board/src/main/resources/application.properties
-          target: /home/ubuntu/server/demo/board/src/main/resources/
-
-      # User properties 업로드
-      - name: Upload user properties to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          source: user/src/main/resources/application.properties
-          target: /home/ubuntu/server/demo/user/src/main/resources/
-
-      # EC2 서버에서 실행
-      - name: Run board & user on EC2
+      - name: Run app on EC2
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -106,13 +62,6 @@ jobs:
           script_stop: true
           script: |
             set -x
-            rm -rf /home/ubuntu/server/web
-            mkdir -p /home/ubuntu/server/web
-            mv /home/ubuntu/server/demo/board/board-run.jar /home/ubuntu/server/web/board.jar
-            mv /home/ubuntu/server/demo/user/user-run.jar /home/ubuntu/server/web/user.jar
-            cd /home/ubuntu/server/web
+            cd /home/ubuntu/server/app
             sudo fuser -k -n tcp 8080 || true
-            sudo fuser -k -n tcp 8081 || true
-            nohup java -jar board.jar > board.log 2>&1 &
-            nohup java -jar user.jar --server.port=8081 > user.log 2>&1 &
-            rm -rf /home/ubuntu/server/demo
+            nohup java -jar app.jar > app.log 2>&1 &
