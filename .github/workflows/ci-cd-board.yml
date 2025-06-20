@@ -65,3 +65,56 @@ jobs:
             cd /home/ubuntu/server/app
             sudo fuser -k -n tcp 8080 || true
             nohup java -jar app.jar > app.log 2>&1 &
+# 수정 포인트만 보여드림
+on:
+  push:
+    branches: [ main ]  # 또는 develop
+    paths:
+      - '**'  # 전체 감지로 바꿈
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Create application.properties
+        run: |
+          mkdir -p src/main/resources
+          echo "${{ secrets.APPLICATION_PRO }}" > src/main/resources/application.properties
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build with Gradle (bootJar)
+        run: ./gradlew clean bootJar -x test
+
+      - name: Rename jar
+        run: cp build/libs/*.jar app.jar
+
+      - name: Upload to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          source: app.jar
+          target: /home/ubuntu/server/app
+
+      - name: Deploy and Run
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            pkill -f 'java -jar' || true
+            cd /home/ubuntu/server/app
+            nohup java -jar app.jar > app.log 2>&1 &
