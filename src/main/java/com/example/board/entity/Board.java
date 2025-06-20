@@ -33,6 +33,17 @@ public class Board {
 
     private String writer;
 
+//    @CreatedDate
+//    @Column(updatable = false)
+//    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
+//    private LocalDateTime createdDate;
+//
+//    @LastModifiedDate
+//    @Column
+//    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
+//    private ZonedDateTime modifiedDate;
+
+
     @CreatedDate
     @Column(updatable = false)
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
@@ -41,8 +52,7 @@ public class Board {
     @LastModifiedDate
     @Column
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
-    private ZonedDateTime modifiedDate;
-
+    private LocalDateTime modifiedDate;
     private Integer likeCount;
 
     // 여러 이미지 연관관계
