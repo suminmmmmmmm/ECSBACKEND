@@ -24,7 +24,7 @@ public class SecurityConfig {
 //                        .requestMatchers("/api/boards/**").permitAll() // 모든 회원 조회가능
                                 .requestMatchers("/auth/**").permitAll()
                                 .requestMatchers("/api/boards/**").authenticated() //로그인 한 회원만 가능
-
+                                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() //Swagger 허용
                                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // 필터 등록

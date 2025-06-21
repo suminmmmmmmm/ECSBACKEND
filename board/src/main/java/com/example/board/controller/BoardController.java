@@ -103,8 +103,8 @@ public class BoardController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<String> delete(@PathVariable Long id) {
         boardService.delete(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("게시글이 성공적으로 삭제되었습니다.");
     }
 }
