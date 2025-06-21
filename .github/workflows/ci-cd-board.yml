@@ -34,7 +34,10 @@ jobs:
         working-directory: board
 
       - name: Rename JAR for deployment
-        run: cp board/build/libs/run.jar app.jar
+        run: |
+          JAR_PATH=$(find board/build/libs -type f -name "*.jar" ! -name "*-plain.jar" | head -n 1)
+          echo "Using JAR: $JAR_PATH"
+          cp "$JAR_PATH" app.jar
 
       - name: Upload JAR to EC2
         uses: appleboy/scp-action@v0.1.7
