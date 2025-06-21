@@ -21,28 +21,21 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # application.properties 생성
       - name: Create application.properties
         run: |
           mkdir -p board/src/main/resources
           echo "${{ secrets.APPLICATION_PRO }}" > board/src/main/resources/application.properties
 
-      # gradlew 실행 권한 부여
       - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-        working-directory: board
+        run: chmod +x board/gradlew
 
-      # Gradle 빌드
       - name: Build with Gradle (bootJar)
         run: ./gradlew clean bootJar
         working-directory: board
 
-      # JAR 이름 정리
       - name: Rename JAR for deployment
-        run: |
-          cp $(ls board/build/libs/*.jar | head -n 1) app.jar
+        run: cp board/build/libs/run.jar app.jar
 
-      # JAR 업로드
       - name: Upload JAR to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -52,17 +45,6 @@ jobs:
           source: app.jar
           target: /home/ubuntu/server/demo
 
-      # properties 업로드
-      - name: Upload application.properties to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          source: board/src/main/resources/application.properties
-          target: /home/ubuntu/server/demo/src/main/resources/
-
-      # EC2에서 실행
       - name: Run app.jar on EC2
         uses: appleboy/ssh-action@v1.2.0
         with:
