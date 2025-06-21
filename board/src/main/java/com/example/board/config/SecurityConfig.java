@@ -20,9 +20,12 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/api/boards/**").permitAll() // 게시판 전체 허용
-                        .anyRequest().authenticated()
+//                        .requestMatchers("/auth/**").permitAll()
+//                        .requestMatchers("/api/boards/**").permitAll() // 모든 회원 조회가능
+                                .requestMatchers("/auth/**").permitAll()
+                                .requestMatchers("/api/boards/**").authenticated() //로그인 한 회원만 가능
+
+                                .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // 필터 등록
 

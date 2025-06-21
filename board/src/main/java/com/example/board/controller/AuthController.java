@@ -61,6 +61,12 @@ public ResponseEntity<?> login(@RequestParam String username,
 
 //로그아웃코드 추가
 
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestParam String username) {
+        authService.logout(username);
+        return ResponseEntity.ok("로그아웃 되었습니다.");
+    }
+
 }
 
 

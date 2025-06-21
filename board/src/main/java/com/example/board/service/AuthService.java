@@ -59,4 +59,8 @@ public class AuthService {
     return new TokenResponse(message, accessToken, refreshToken);
 }
 
+    public void logout(String username) {
+        refreshTokenStore.delete(username);
+    }
+
 }
