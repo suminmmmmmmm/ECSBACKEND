@@ -53,7 +53,7 @@ public class Board {
     @Column
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
     private LocalDateTime modifiedDate;
-    private Integer likeCount;
+
 
     // 여러 이미지 연관관계
     @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)

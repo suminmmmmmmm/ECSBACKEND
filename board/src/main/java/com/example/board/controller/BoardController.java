@@ -2,17 +2,19 @@ package com.example.board.controller;
 
 import com.example.board.entity.Board;
 import com.example.board.entity.BoardImage;
+import com.example.board.entity.BoardLike;
+import com.example.board.service.BoardLikeService;
 import com.example.board.service.BoardService;
 import com.example.board.config.S3UploadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/boards")
@@ -21,31 +23,33 @@ public class BoardController {
 
     private final BoardService boardService;
     private final S3UploadService s3UploadService;
+    private final BoardLikeService boardLikeService;
 
+    //모든 게시글 조회
     @GetMapping
     public ResponseEntity<List<Board>> list() {
         return ResponseEntity.ok(boardService.findAll());
     }
 
+    //특정 게시글 조회
     @GetMapping("/{id}")
     public ResponseEntity<Board> detail(@PathVariable Long id) {
         Board board = boardService.findById(id);
         return board != null ? ResponseEntity.ok(board) : ResponseEntity.notFound().build();
     }
 
+    //게시글 작성
     @PostMapping(consumes = {"multipart/form-data"})
     public ResponseEntity<Board> create(
             @RequestParam String title,
             @RequestParam String content,
             @RequestParam String author,
-            @RequestParam Integer likeCount,
             @RequestParam(value = "images", required = false) List<MultipartFile> imageFiles) throws IOException {
 
         Board board = Board.builder()
                 .title(title)
                 .content(content)
                 .writer(author)
-                .likeCount(likeCount)
                 .build();
 
         List<BoardImage> images = new ArrayList<>();
@@ -102,9 +106,18 @@ public class BoardController {
         return ResponseEntity.ok(boardService.save(board));
     }
 
+    //게시글 삭제
     @DeleteMapping("/{id}")
     public ResponseEntity<String> delete(@PathVariable Long id) {
         boardService.delete(id);
         return ResponseEntity.ok("게시글이 성공적으로 삭제되었습니다.");
+    }
+
+    //게시물 좋아요
+    @PostMapping("/{boardId}/like")
+    public ResponseEntity<Map<String, Object>> togglelike(@PathVariable Long boardId, @AuthenticationPrincipal UserDetails userDetails) {
+        boolean liked = boardLikeService.toggleLike(boardId, userDetails.getUsername());
+        int count = boardLikeService.getLikeCount(boardId);
+        return ResponseEntity.ok(Map.of("liked", liked, "likecount", count));
     }
 }
