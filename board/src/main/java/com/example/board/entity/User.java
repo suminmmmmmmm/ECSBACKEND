@@ -22,7 +22,7 @@ public class User {
 
     public User() {}
 
-    // ✅ Getter & Setter
+
     public String getUsername() {
         return username;
     }
@@ -45,5 +45,9 @@ public class User {
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public Long getId() {
+        return id;
     }
 }
