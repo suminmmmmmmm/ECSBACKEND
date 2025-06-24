@@ -1,13 +1,17 @@
 package com.example.board.service;
 
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import com.example.board.dto.TokenResponse;
 import com.example.board.entity.User;
 import com.example.board.jwt.JwtTokenProvider;
 import com.example.board.jwt.RefreshTokenStore;
 import com.example.board.repository.UserRepository;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class AuthService {
@@ -17,7 +21,6 @@ public class AuthService {
     private final RefreshTokenStore refreshTokenStore;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    // ✅ 모든 필요한 컴포넌트 주입
     public AuthService(UserRepository userRepository,
                        JwtTokenProvider jwtTokenProvider,
                        RefreshTokenStore refreshTokenStore) {
@@ -42,20 +45,36 @@ public class AuthService {
     }
 
     public TokenResponse login(String username, String password) {
-    User user = userRepository.findByUsername(username)
-        .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
 
-    if (!passwordEncoder.matches(password, user.getPassword())) {
-        throw new RuntimeException("아이디 또는 비밀번호가 일치하지 않습니다.");
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("아이디 또는 비밀번호가 일치하지 않습니다.");
+        }
+
+        // ✅ 사용자 권한 추출
+        List<String> roles = user.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        // ✅ JWT 생성 시 roles 포함
+        String accessToken = jwtTokenProvider.generateAccessToken(username, roles);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(username);
+
+        refreshTokenStore.save(username, refreshToken);
+
+        String message = String.format("%s님이 로그인 하셨습니다.", user.getNickname());
+        return new TokenResponse(message, accessToken, refreshToken);
     }
 
-    String accessToken = jwtTokenProvider.generateAccessToken(username);
-    String refreshToken = jwtTokenProvider.generateRefreshToken(username);
+    public void deleteUser(String username, String password) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-    refreshTokenStore.save(username, refreshToken);
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
+        }
 
-    String message = String.format("%s님이 로그인 하셨습니다.", user.getNickname());
-    return new TokenResponse(message, accessToken, refreshToken);
-}
-
+        userRepository.delete(user);
+    }
 }

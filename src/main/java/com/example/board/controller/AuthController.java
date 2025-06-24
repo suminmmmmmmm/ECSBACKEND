@@ -1,11 +1,21 @@
 package com.example.board.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.board.dto.DeleteUserRequest;
+import com.example.board.dto.LoginRequest;
 import com.example.board.dto.TokenResponse;
 import com.example.board.repository.UserRepository;
 import com.example.board.service.AuthService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
@@ -46,22 +56,24 @@ public class AuthController {
         }
         return ResponseEntity.ok("사용 가능한 닉네임입니다.");
     }
+
+    // ✅ 수정된 로그인 메서드 (JSON 요청 처리)
     @PostMapping("/login")
-public ResponseEntity<?> login(@RequestParam String username,
-                               @RequestParam String password) {
-    try {
-        TokenResponse result = authService.login(username, password);
-        return ResponseEntity.ok(result);
-    } catch (RuntimeException e) {
-        // 메시지를 함께 전달
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                             .body(e.getMessage());
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            String username = request.getUsername();
+            String password = request.getPassword();
+            TokenResponse result = authService.login(username, password);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/withdraw")
+    public ResponseEntity<?> deleteUser(@RequestBody DeleteUserRequest request, Authentication authentication) {
+        String username = authentication.getName();  // JWT에서 인증된 사용자명
+        authService.deleteUser(username, request.getPassword());
+        return ResponseEntity.ok("회원탈퇴가 완료되었습니다.");
     }
 }
-
-
-}
-
-
-    
-
