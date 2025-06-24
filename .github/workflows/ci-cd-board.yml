@@ -1,0 +1,66 @@
+name: CI/CD - Monolithic Board+User Combined
+
+on:
+  push:
+    paths:
+      - 'board/**'
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Create application.properties
+        run: |
+          mkdir -p board/src/main/resources
+          echo "${{ secrets.APPLICATION_PRO }}" > board/src/main/resources/application.properties
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x board/gradlew
+
+      - name: Build with Gradle (bootJar)
+        run: ./gradlew clean bootJar
+        working-directory: board
+
+      - name: Rename JAR for deployment
+        run: |
+          JAR_PATH=$(find board/build/libs -type f -name "*.jar" ! -name "*-plain.jar" | head -n 1)
+          echo "Using JAR: $JAR_PATH"
+          cp "$JAR_PATH" app.jar
+
+      - name: Upload JAR to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          source: app.jar
+          target: /home/ubuntu/server/demo
+
+      - name: Run app.jar on EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script_stop: true
+          script: |
+            set -x
+            rm -rf /home/ubuntu/server/web
+            mkdir -p /home/ubuntu/server/web
+            mv /home/ubuntu/server/demo/app.jar /home/ubuntu/server/web/app.jar
+            cd /home/ubuntu/server/web
+            sudo fuser -k -n tcp 8080 || true
+            nohup java -jar app.jar > app.log 2>&1 &
+            rm -rf /home/ubuntu/server/demo
