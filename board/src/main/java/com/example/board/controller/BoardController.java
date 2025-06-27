@@ -37,10 +37,15 @@ public class BoardController {
 
     //특정 게시글 조회
     @GetMapping("/{id}")
-    public ResponseEntity<Board> detail(@PathVariable Long id) {
+    public ResponseEntity<BoardResponseDto> detail(@PathVariable Long id) {
         Board board = boardService.findById(id);
-        return board != null ? ResponseEntity.ok(board) : ResponseEntity.notFound().build();
+        if (board == null) {
+            return ResponseEntity.notFound().build();
+        }
+        int likeCount = boardLikeService.getLikeCount(id);
+        return ResponseEntity.ok(BoardResponseDto.from(board, likeCount));
     }
+
 
     //게시글 작성
     @PostMapping(consumes = {"multipart/form-data"})

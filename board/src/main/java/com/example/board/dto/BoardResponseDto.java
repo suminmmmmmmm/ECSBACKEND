@@ -10,13 +10,15 @@ public class BoardResponseDto {
     private String title;
     private String content;
     private String author;
+    private int likeCount;
 
-    public static BoardResponseDto from(Board board) {
+    public static BoardResponseDto from(Board board, int likeCount) {
         return BoardResponseDto.builder()
                 .postId(board.getPostId())
                 .title(board.getTitle())
                 .content(board.getContent())
                 .author(board.getWriter())
+                .likeCount(likeCount)
                 .build();
     }
 
