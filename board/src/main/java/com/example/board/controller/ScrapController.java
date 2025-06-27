@@ -4,6 +4,8 @@ import com.example.board.dto.ScrapResponseDto;
 import com.example.board.entity.Scrap;
 import com.example.board.entity.User;
 import com.example.board.repository.UserRepository;
+import com.example.board.service.BoardLikeService;
+import com.example.board.service.BoardService;
 import com.example.board.service.ScrapService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ public class ScrapController {
 
     private final ScrapService scrapService;
     private final UserRepository userRepository;
+    private final BoardLikeService boardLikeService;
 
     @Getter
     public static class ScrapRequest {
@@ -49,6 +52,7 @@ public class ScrapController {
                 ScrapResponseDto.builder()
                         .scrapId(scrap.getId())
                         .boardId(scrap.getBoard().getPostId())
+                        .likeCount(boardLikeService.getLikeCount(scrap.getBoard().getPostId()))
                         .boardTitle(scrap.getBoard().getTitle())
                         .boardWriter(scrap.getBoard().getWriter())
                         .boardContent(scrap.getBoard().getContent())

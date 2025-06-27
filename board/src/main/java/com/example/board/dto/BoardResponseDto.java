@@ -9,7 +9,6 @@ public class BoardResponseDto {
     private Long postId;
     private String title;
     private String content;
-    private String category;
     private String author;
 
     public static BoardResponseDto from(Board board) {
@@ -20,4 +19,6 @@ public class BoardResponseDto {
                 .author(board.getWriter())
                 .build();
     }
+
+
 }

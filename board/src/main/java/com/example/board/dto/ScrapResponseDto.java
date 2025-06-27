@@ -14,6 +14,7 @@ public class ScrapResponseDto {
     private String boardTitle;
     private String boardWriter;
     private String boardContent;
+    private int likeCount;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm", timezone = "Asia/Seoul")
     private LocalDateTime createdDate;

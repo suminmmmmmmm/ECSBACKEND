@@ -12,9 +12,10 @@ public class BoardRequestDto {
     private String postId;
     private String title;
     private String content;
-    private String category;
     private String author;
     private String imageUrl;
     private String deleteImage;
+    private String keywords;
+
 }
 

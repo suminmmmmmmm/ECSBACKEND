@@ -1,8 +1,10 @@
 package com.example.board.controller;
 
+import com.example.board.dto.BoardResponseDto;
 import com.example.board.entity.Board;
 import com.example.board.entity.BoardImage;
 import com.example.board.entity.BoardLike;
+import com.example.board.repository.BoardRepository;
 import com.example.board.service.BoardLikeService;
 import com.example.board.service.BoardService;
 import com.example.board.config.S3UploadService;
@@ -15,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/boards")
@@ -24,6 +27,7 @@ public class BoardController {
     private final BoardService boardService;
     private final S3UploadService s3UploadService;
     private final BoardLikeService boardLikeService;
+    private final BoardRepository boardRepository;
 
     //모든 게시글 조회
     @GetMapping
@@ -67,6 +71,7 @@ public class BoardController {
         return ResponseEntity.ok(boardService.save(board));
     }
 
+    //글 수정
     @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
     public ResponseEntity<Board> update(
             @PathVariable Long id,
@@ -81,7 +86,9 @@ public class BoardController {
 
         // 기존 이미지 중 유지할 이미지 ID를 제외하고 삭제
         if (board.getImages() != null) {
+          // Iterator -> 컬렉션에 저장된 요소들을 순차적으로 읽어오기 위해 사용
             Iterator<BoardImage> iterator = board.getImages().iterator();
+            // iterator.hasNext() -> 읽어올 객체가 있으면 반환
             while (iterator.hasNext()) {
                 BoardImage image = iterator.next();
                 if (keepImageIds == null || !keepImageIds.contains(image.getId())) {
@@ -120,4 +127,17 @@ public class BoardController {
         int count = boardLikeService.getLikeCount(boardId);
         return ResponseEntity.ok(Map.of("liked", liked, "likecount", count));
     }
+
+    //키워드 검색
+    @GetMapping("/search")
+    public ResponseEntity<List<Board>> search(@RequestParam String keyword) {
+        String trimmedKeyword = keyword.trim();
+
+        if (trimmedKeyword.isEmpty()) {
+            return ResponseEntity.badRequest().build(); // 또는 return ResponseEntity.ok(Collections.emptyList());
+        }
+
+        return ResponseEntity.ok(boardRepository.searchByTitleOrContent(trimmedKeyword));
+    }
+
 }

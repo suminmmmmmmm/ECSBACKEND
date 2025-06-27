@@ -40,5 +40,3 @@ out/
 # Spring Boot 설정파일
 application.properties
 application.yml
-=======
->>>>>>> userservice

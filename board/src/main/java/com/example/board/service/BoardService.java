@@ -40,4 +40,10 @@ public class BoardService {
         return boardRepository.save(board);
     }
 
+
+    //제목 키워드 검색
+    public List<Board> searchByTitle(String keyword) {
+        return boardRepository.searchByTitleOrContent(keyword.trim());
+    }
+
 }

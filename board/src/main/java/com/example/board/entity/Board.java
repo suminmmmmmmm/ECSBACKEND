@@ -28,9 +28,10 @@ public class Board {
 
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 200, nullable = false)
     private String content;
 
+    @Column(length = 1000, nullable = false)
     private String writer;
 
 //    @CreatedDate
@@ -46,12 +47,12 @@ public class Board {
 
     @CreatedDate
     @Column(updatable = false)
-    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm", timezone = "Asia/Seoul")
     private LocalDateTime createdDate;
 
     @LastModifiedDate
     @Column
-    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm", timezone = "Asia/Seoul")
     private LocalDateTime modifiedDate;
 
 
