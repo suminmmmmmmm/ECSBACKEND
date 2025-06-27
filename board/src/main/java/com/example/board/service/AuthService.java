@@ -18,7 +18,7 @@ public class AuthService {
     private final RefreshTokenStore refreshTokenStore;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    // ✅ 모든 필요한 컴포넌트 주입
+    // 모든 필요한 컴포넌트 주입
     public AuthService(UserRepository userRepository,
                        JwtTokenProvider jwtTokenProvider,
                        RefreshTokenStore refreshTokenStore) {
