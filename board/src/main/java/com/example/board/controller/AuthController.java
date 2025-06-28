@@ -31,6 +31,7 @@ public class AuthController {
         }
     }
 
+    
     @GetMapping("/check-username")
     public ResponseEntity<String> checkUsername(@RequestParam String username) {
         if (userRepository.findByUsername(username).isPresent()) {
