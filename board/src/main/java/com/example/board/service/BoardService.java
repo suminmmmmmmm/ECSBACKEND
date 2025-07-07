@@ -4,6 +4,8 @@ import com.example.board.dto.BoardRequestDto;
 import com.example.board.entity.Board;
 import com.example.board.repository.BoardRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -46,4 +48,7 @@ public class BoardService {
         return boardRepository.searchByTitleOrContent(keyword.trim());
     }
 
+    public Page<Board> findAllPaged(Pageable pageable) {
+        return boardRepository.findAll(pageable);
+    }
 }

@@ -53,10 +53,15 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(secretKey.getBytes()).build().parseClaimsJws(token);
+            Jwts.parserBuilder()
+                    .setSigningKey(secretKey.getBytes())
+                    .build()
+                    .parseClaimsJws(token);
             return true;
         } catch (Exception e) {
+            System.out.println("[JWT ERROR] " + e.getClass().getSimpleName() + " : " + e.getMessage());
             return false;
         }
     }
+
 }

@@ -1,5 +1,6 @@
 package com.example.board.controller;
 
+import com.example.board.dto.BoardRequestDto;
 import com.example.board.dto.BoardResponseDto;
 import com.example.board.entity.Board;
 import com.example.board.entity.BoardImage;
@@ -9,6 +10,10 @@ import com.example.board.service.BoardLikeService;
 import com.example.board.service.BoardService;
 import com.example.board.config.S3UploadService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -135,14 +140,48 @@ public class BoardController {
 
     //키워드 검색
     @GetMapping("/search")
-    public ResponseEntity<List<Board>> search(@RequestParam String keyword) {
+    public ResponseEntity<List<BoardResponseDto>> search(@RequestParam String keyword) {
         String trimmedKeyword = keyword.trim();
-
         if (trimmedKeyword.isEmpty()) {
-            return ResponseEntity.badRequest().build(); // 또는 return ResponseEntity.ok(Collections.emptyList());
+            return ResponseEntity.badRequest().build();
         }
 
-        return ResponseEntity.ok(boardRepository.searchByTitleOrContent(trimmedKeyword));
+        List<Board> boards = boardRepository.searchByTitleOrContent(trimmedKeyword);
+
+        List<BoardResponseDto> responseDtos = boards.stream()
+                .map(board -> {
+                    int likeCount = boardLikeService.getLikeCount(board.getPostId());
+                    return BoardResponseDto.from(board, likeCount);
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(responseDtos);
+    }
+
+
+    //게시물 글 페이지네이션
+    @GetMapping("/paged")
+    public ResponseEntity<Map<String, Object>> getBoardsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "3") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending());
+        Page<Board> boardPage = boardService.findAllPaged(pageable);
+
+        List<BoardResponseDto> dtos = boardPage.getContent().stream()
+                .map(board -> {
+                    int likeCount = boardLikeService.getLikeCount(board.getPostId());
+                    return BoardResponseDto.from(board, likeCount);
+                })
+                .collect(Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("boards", dtos);
+        response.put("currentPage", boardPage.getNumber());
+        response.put("totalItems", boardPage.getTotalElements());
+        response.put("totalPages", boardPage.getTotalPages());
+
+        return ResponseEntity.ok(response);
     }
 
 }
