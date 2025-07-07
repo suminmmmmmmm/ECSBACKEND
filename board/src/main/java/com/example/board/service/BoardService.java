@@ -2,11 +2,14 @@ package com.example.board.service;
 
 import com.example.board.dto.BoardRequestDto;
 import com.example.board.entity.Board;
+import com.example.board.repository.BoardLikeRepository;
 import com.example.board.repository.BoardRepository;
+import com.example.board.repository.ScrapRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -14,9 +17,13 @@ import java.util.List;
 
 public class BoardService {
     private final BoardRepository boardRepository;
+    private final BoardLikeRepository boardLikeRepository;
+    private final ScrapRepository scrapRepository;
 
-    public BoardService(BoardRepository boardRepository) {
+    public BoardService(BoardRepository boardRepository, BoardLikeRepository boardLikeRepository, ScrapRepository scrapRepository) {
         this.boardRepository = boardRepository;
+        this.boardLikeRepository = boardLikeRepository;
+        this.scrapRepository = scrapRepository;
     }
 
     public List<Board> findAll(){
@@ -31,9 +38,17 @@ public class BoardService {
         return boardRepository.save(board);
     }
 
-    public void delete(Long id){
-        boardRepository.deleteById(String.valueOf(id));
+    @Transactional
+    public void delete(Long id) {
+        Board board = boardRepository.findById(String.valueOf(id)).orElseThrow();
+
+        scrapRepository.deleteAllByBoard(board); //  scrap 먼저 삭제
+        boardLikeRepository.deleteAllByBoard(board); //  좋아요도 삭제
+
+        boardRepository.deleteById(String.valueOf(id)); //  게시글 삭제
     }
+
+
 
     //글 수정
     public Board updateBoard(String id, BoardRequestDto dto) {
