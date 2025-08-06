@@ -60,8 +60,9 @@ public class BoardService {
 
     //제목 키워드 검색
     public List<Board> searchByTitle(String keyword) {
-        return boardRepository.searchByTitleOrContent(keyword.trim());
+        return boardRepository.searchByTitle(keyword.trim());
     }
+
 
     public Page<Board> findAllPaged(Pageable pageable) {
         return boardRepository.findAll(pageable);

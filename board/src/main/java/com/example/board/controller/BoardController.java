@@ -146,8 +146,9 @@ public class BoardController {
             return ResponseEntity.badRequest().build();
         }
 
-        List<Board> boards = boardRepository.searchByTitleOrContent(trimmedKeyword);
+        //List<Board> boards = boardRepository.searchByTitleOrContent(trimmedKeyword);
 
+        List<Board> boards = boardService.searchByTitle(trimmedKeyword);
         List<BoardResponseDto> responseDtos = boards.stream()
                 .map(board -> {
                     int likeCount = boardLikeService.getLikeCount(board.getPostId());
