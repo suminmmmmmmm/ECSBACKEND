@@ -1,14 +1,14 @@
 package com.example.board.service;
 
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import com.example.board.dto.TokenResponse;
 import com.example.board.entity.User;
 import com.example.board.jwt.JwtTokenProvider;
 import com.example.board.jwt.RefreshTokenStore;
 import com.example.board.repository.UserRepository;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-
-
 
 @Service
 public class AuthService {
@@ -43,24 +43,39 @@ public class AuthService {
     }
 
     public TokenResponse login(String username, String password) {
-    User user = userRepository.findByUsername(username)
-        .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
 
-    if (!passwordEncoder.matches(password, user.getPassword())) {
-        throw new RuntimeException("아이디 또는 비밀번호가 일치하지 않습니다.");
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("아이디 또는 비밀번호가 일치하지 않습니다.");
+        }
+
+        String accessToken = jwtTokenProvider.generateAccessToken(username);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(username);
+
+        refreshTokenStore.save(username, refreshToken);
+
+        String message = String.format("%s님이 로그인 하셨습니다.", user.getNickname());
+        return new TokenResponse(message, accessToken, refreshToken);
     }
-
-    String accessToken = jwtTokenProvider.generateAccessToken(username);
-    String refreshToken = jwtTokenProvider.generateRefreshToken(username);
-
-    refreshTokenStore.save(username, refreshToken);
-
-    String message = String.format("%s님이 로그인 하셨습니다.", user.getNickname());
-    return new TokenResponse(message, accessToken, refreshToken);
-}
 
     public void logout(String username) {
         refreshTokenStore.delete(username);
     }
+    public void withdraw(String username, String rawPassword) {
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new UsernameNotFoundException("사용자 없음"));
 
-}
+    if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+        throw new RuntimeException("비밀번호가 일치하지 않습니다.");
+    }
+    refreshTokenStore.delete(username);
+
+    // 2) 유저 삭제(하드 삭제)
+    userRepository.delete(user);
+
+    // PIN 관련 메서드 전부 제거
+    // setPin(...)
+    // verifyPin(...)
+    // loginWithPin(...)
+    }}

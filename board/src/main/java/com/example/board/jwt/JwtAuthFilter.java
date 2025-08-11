@@ -18,22 +18,17 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtTokenProvider jwtTokenProvider;
-
-    @Autowired
-    private UserDetailsService userDetailsService;
+    @Autowired private JwtTokenProvider jwtTokenProvider;
+    @Autowired private UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+                                    FilterChain chain) throws ServletException, IOException {
 
-        String uri = request.getRequestURI();
-
-        // ✅ 인증 없이 허용할 경로: /auth만 예외 처리
-        if (uri.startsWith("/auth")) {
-            filterChain.doFilter(request, response);
+        // ✅ 공개 엔드포인트만 스킵
+        if (isPublic(request)) {
+            chain.doFilter(request, response);
             return;
         }
 
@@ -43,12 +38,27 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (jwtTokenProvider.validateToken(token)) {
                 String username = jwtTokenProvider.getUsername(token);
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                var auth = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         }
 
-        filterChain.doFilter(request, response);
+        chain.doFilter(request, response);
+    }
+
+    private boolean isPublic(HttpServletRequest req) {
+        String uri = req.getRequestURI();
+        String method = req.getMethod();
+
+        if ("/auth/login".equals(uri) && "POST".equals(method)) return true;
+        if ("/auth/signup".equals(uri) && "POST".equals(method)) return true;
+        if ("/auth/check-username".equals(uri) && "GET".equals(method)) return true;
+        if ("/auth/check-nickname".equals(uri) && "GET".equals(method)) return true;
+
+        // swagger 허용
+        if (uri.startsWith("/swagger-ui") || uri.startsWith("/v3/api-docs")) return true;
+
+        return false; // 🔒 나머지는 다 필터 타서 JWT 검증
     }
 }
