@@ -52,8 +52,11 @@ public class CommentService {
         return roots.stream().map(this::convertToDtoWithChildren).collect(Collectors.toList());
     }
 
-    public void deleteComment(Long commentId) {
+    public void deleteComment(Long commentId,String currentUserName) {
         Comment comment = commentRepository.findById(commentId).orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
+        if(comment.getWriter() == null || !comment.getWriter().equals(currentUserName)) {
+            throw new SecurityException("본인의 댓글만 삭제할 수 있습니다.");
+        }
         commentRepository.delete(comment);//자식 댓글도 cascase로 자동 삭제됨
     }
 
@@ -63,7 +66,7 @@ public class CommentService {
                 .content(comment.getContent())
                 .writer(comment.getWriter())
                 .createdDate(comment.getCreatedDate())
-                .parentId(comment.getParent() != null ? comment.getParent().getId() : null) // 🔁 고침!
+                .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
                 .children(comment.getChildren().stream()
                         .map(this::convertToDtoWithChildren)
                         .collect(Collectors.toList()))

@@ -2,9 +2,12 @@ package com.example.board.controller;
 
 import com.example.board.dto.CommentDto;
 import com.example.board.entity.Comment;
+import com.example.board.entity.User;
 import com.example.board.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,9 +30,13 @@ public class CommentController {
     }
 
     @DeleteMapping("/{commentId}")
-    public ResponseEntity<Void> deleteComment(@PathVariable Long commentId) {
-        commentService.deleteComment(commentId);
+    public ResponseEntity<Void> deleteComment(@PathVariable Long commentId, @AuthenticationPrincipal UserDetails userDetails) {
+        if(userDetails == null){
+            return ResponseEntity.status(401).build();
+        }
+        commentService.deleteComment(commentId,userDetails.getUsername());
         return ResponseEntity.noContent().build();
+
     }
 
 }
