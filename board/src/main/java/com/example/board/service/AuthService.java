@@ -27,8 +27,8 @@ public class AuthService {
         this.refreshTokenStore = refreshTokenStore;
     }
 
-    public void signup(String username, String password, String nickname) {
-        if (userRepository.findByUsername(username).isPresent()) {
+    public void signup(String userId, String password, String nickname) {
+        if (userRepository.findByUserId(userId).isPresent()) {
             throw new RuntimeException("이미 존재하는 아이디입니다.");
         }
         if (userRepository.findByNickname(nickname).isPresent()) {
@@ -36,40 +36,40 @@ public class AuthService {
         }
 
         User user = new User();
-        user.setUserId(username);
+        user.setUserId(userId);
         user.setPassword(passwordEncoder.encode(password));
         user.setNickname(nickname);
         userRepository.save(user);
     }
 
-    public TokenResponse login(String username, String password) {
-        User user = userRepository.findByUsername(username)
+    public TokenResponse login(String userId, String password) {
+        User user = userRepository.findByUserId(userId)
             .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new RuntimeException("아이디 또는 비밀번호가 일치하지 않습니다.");
         }
 
-        String accessToken = jwtTokenProvider.generateAccessToken(username);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(username);
+        String accessToken = jwtTokenProvider.generateAccessToken(userId);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(userId);
 
-        refreshTokenStore.save(username, refreshToken);
+        refreshTokenStore.save(userId, refreshToken);
 
         String message = String.format("%s님이 로그인 하셨습니다.", user.getNickname());
         return new TokenResponse(message, accessToken, refreshToken);
     }
 
-    public void logout(String username) {
-        refreshTokenStore.delete(username);
+    public void logout(String userId) {
+        refreshTokenStore.delete(userId);
     }
-    public void withdraw(String username, String rawPassword) {
-    User user = userRepository.findByUsername(username)
+    public void withdraw(String userId, String rawPassword) {
+    User user = userRepository.findByUserId(userId)
             .orElseThrow(() -> new UsernameNotFoundException("사용자 없음"));
 
     if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
         throw new RuntimeException("비밀번호가 일치하지 않습니다.");
     }
-    refreshTokenStore.delete(username);
+    refreshTokenStore.delete(userId);
 
     // 2) 유저 삭제(하드 삭제)
     userRepository.delete(user);

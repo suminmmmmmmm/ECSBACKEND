@@ -43,8 +43,8 @@ public class ScrapController {
 
     @GetMapping("/scraps")
     public ResponseEntity<List<ScrapResponseDto>> getMyScraps(@AuthenticationPrincipal UserDetails userDetails) {
-        String username = userDetails.getUsername();
-        User user = userRepository.findByUsername(username).orElseThrow();
+        String userId = userDetails.getUsername();
+        User user = userRepository.findByUserId(userId).orElseThrow();
 
         List<Scrap> scraps = scrapService.getUserScraps(user.getId());
 

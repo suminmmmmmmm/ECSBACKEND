@@ -11,23 +11,19 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "users")
-@Getter
-@Setter
+@Getter @Setter
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String userId ;
+    // 자바 필드명은 userId, 실제 DB 컬럼명은 username
+    @Column(name = "username", nullable = false, unique = true, length = 50)
+    private String userId;
 
     @Column(nullable = false)
     private String password;
 
     @Column(nullable = false, unique = true, length = 50)
     private String nickname;
-
-    // ===== 여기에 있던 PIN 관련 필드 제거 =====
-    // private String pinNumber;
 }

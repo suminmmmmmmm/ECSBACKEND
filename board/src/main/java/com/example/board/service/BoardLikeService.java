@@ -17,9 +17,9 @@ public class BoardLikeService {
     private final BoardLikeRepository boardLikeRepository;
 
     //게시글 좋아요 토글 (좋아요 상태 변경)
-    public boolean toggleLike(Long boardId, String username) {
+    public boolean toggleLike(Long boardId, String userId) {
         Board board = boardRepository.findById(String.valueOf(boardId)).orElseThrow();
-        User user = userRepository.findByUsername(username).orElseThrow();
+        User user = userRepository.findByUserId(userId).orElseThrow();
 
         return boardLikeRepository.findByBoardAndUser(board,user).map(like ->{
             boardLikeRepository.delete(like);// 이미 좋아요한 경우 -> 취소
@@ -37,9 +37,9 @@ public class BoardLikeService {
     }
 
     //사용자가 특정 게시글에 좋아요를 눌렀는지 확인
-    public boolean isLiked(Long boardId, String username) {
+    public boolean isLiked(Long boardId, String userId) {
         Board board = boardRepository.findById(String.valueOf(boardId)).orElseThrow();
-        User user = userRepository.findByUsername(username).orElseThrow();
+        User user = userRepository.findByUserId(userId).orElseThrow();
         return boardLikeRepository.findByBoardAndUser(board,user).isPresent();
     }
 

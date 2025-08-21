@@ -40,8 +40,8 @@ public class AuthController {
 
     
     @GetMapping("/check-username")
-    public ResponseEntity<String> checkUsername(@RequestParam String username) {
-        if (userRepository.findByUsername(username).isPresent()) {
+    public ResponseEntity<String> checkUserId(@RequestParam String userId) {
+        if (userRepository.findByUserId(userId).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("이미 사용 중인 아이디입니다.");
         }
         return ResponseEntity.ok("사용 가능한 아이디입니다.");
