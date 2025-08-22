@@ -21,7 +21,7 @@ public class CommentService {
     private final BoardRepository boardRepository;
 
     public Comment addComment(Long boardId, CommentDto dto) {
-        Board board = boardRepository.findById(String.valueOf(boardId)).orElseThrow();
+        Board board = boardRepository.findById(Long.valueOf(String.valueOf(boardId))).orElseThrow();
 
         Comment comment = Comment.builder()
                 .content(dto.getContent())
@@ -41,7 +41,7 @@ public class CommentService {
     }
 
     public List<CommentDto> getCommentsByBoard(Long boardId) {
-        Board board = boardRepository.findById(String.valueOf(boardId)).orElseThrow();
+        Board board = boardRepository.findById(Long.valueOf(String.valueOf(boardId))).orElseThrow();
         List<Comment> comments = commentRepository.findByBoard(board);
 
         // 계층 구조 정리

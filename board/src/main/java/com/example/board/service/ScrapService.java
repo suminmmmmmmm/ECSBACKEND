@@ -20,7 +20,7 @@ public class ScrapService {
 
     public void addScrap(String userId, Long boardId) {
         User user = userRepository.findByUserId(userId).orElseThrow();
-        Board board = boardRepository.findById(String.valueOf(boardId)).orElseThrow();
+        Board board = boardRepository.findById(Long.valueOf(String.valueOf(boardId))).orElseThrow();
 
         // 이미 스크랩했는지 확인 후 저장
         if (scrapRepository.findByUserAndBoard(user, board).isEmpty()) {

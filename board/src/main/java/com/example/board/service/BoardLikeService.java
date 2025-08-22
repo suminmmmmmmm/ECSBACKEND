@@ -18,7 +18,7 @@ public class BoardLikeService {
 
     //게시글 좋아요 토글 (좋아요 상태 변경)
     public boolean toggleLike(Long boardId, String userId) {
-        Board board = boardRepository.findById(String.valueOf(boardId)).orElseThrow();
+        Board board = boardRepository.findById(Long.valueOf(String.valueOf(boardId))).orElseThrow();
         User user = userRepository.findByUserId(userId).orElseThrow();
 
         return boardLikeRepository.findByBoardAndUser(board,user).map(like ->{
@@ -32,13 +32,13 @@ public class BoardLikeService {
 
     // 특정 게시글의 좋아요 개수 조회
     public int getLikeCount(Long boardId) {
-        Board board = boardRepository.findById(String.valueOf(boardId)).orElseThrow();
+        Board board = boardRepository.findById(Long.valueOf(String.valueOf(boardId))).orElseThrow();
         return boardLikeRepository.countByBoard(board);
     }
 
     //사용자가 특정 게시글에 좋아요를 눌렀는지 확인
     public boolean isLiked(Long boardId, String userId) {
-        Board board = boardRepository.findById(String.valueOf(boardId)).orElseThrow();
+        Board board = boardRepository.findById(Long.valueOf(String.valueOf(boardId))).orElseThrow();
         User user = userRepository.findByUserId(userId).orElseThrow();
         return boardLikeRepository.findByBoardAndUser(board,user).isPresent();
     }
