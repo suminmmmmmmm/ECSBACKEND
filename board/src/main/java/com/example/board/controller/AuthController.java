@@ -2,15 +2,16 @@ package com.example.board.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import com.example.board.dto.TokenResponse;
+
+import com.example.board.dto.LoginResponse;
 import com.example.board.repository.UserRepository;
 import com.example.board.service.AuthService;
 
@@ -27,19 +28,18 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<String> signup(@RequestParam String username,
+    public ResponseEntity<String> signup(@RequestParam String userId,
                                          @RequestParam String password,
                                          @RequestParam String nickname) {
         try {
-            authService.signup(username, password, nickname);
+            authService.signup(userId, password, nickname);
             return ResponseEntity.ok("회원가입 완료!");
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         }
     }
 
-    
-    @GetMapping("/check-username")
+    @GetMapping("/check-userid")
     public ResponseEntity<String> checkUserId(@RequestParam String userId) {
         if (userRepository.findByUserId(userId).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("이미 사용 중인 아이디입니다.");
@@ -56,29 +56,33 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestParam String username,
-                                   @RequestParam String password) {
-        try {
-            TokenResponse result = authService.login(username, password);
-            return ResponseEntity.ok(result);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+    public ResponseEntity<?> login(
+            @RequestParam(value = "userId", required = false) String userId,
+            @RequestParam(value = "username", required = false) String username,
+            @RequestParam String password) {
+
+        String id = (userId != null && !userId.isBlank()) ? userId : username;
+        if (id == null || id.isBlank()) {
+            return ResponseEntity.badRequest().body("userId(username) is required");
         }
+
+        LoginResponse result = authService.login(id, password);
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestParam String username) {
-        authService.logout(username);
+    public ResponseEntity<String> logout(@RequestParam String userId) {
+        authService.logout(userId);
         return ResponseEntity.ok("로그아웃 되었습니다.");
     }
+
     @DeleteMapping("/withdraw")
     public ResponseEntity<String> withdraw(@RequestParam String password) {
-        // 토큰에서 현재 로그인한 사용자명 가져오기
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
+        String userId = auth.getName();
 
         try {
-            authService.withdraw(username, password);
+            authService.withdraw(userId, password);
             return ResponseEntity.ok("회원탈퇴 완료");
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
