@@ -12,4 +12,5 @@ public interface BoardRepository extends JpaRepository<Board, Long> { // ✅ Str
     @Query("SELECT b FROM Board b WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Board> searchByTitle(@Param("keyword") String keyword);
 
+    List<Board> findByWriterOrderByCreatedDateDesc(String writer);
 }

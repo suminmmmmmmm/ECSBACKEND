@@ -41,7 +41,7 @@ public class ScrapController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         String userId = userDetails.getUsername();              // principal = userId
-        scrapService.addScrap(req.getBoardId(), userId);        // (boardId, userId) 순서 주의
+        scrapService.addScrap(userId, req.getBoardId());        // (boardId, userId) 순서 주의
         return ResponseEntity.status(201).body("스크랩 성공");
     }
 

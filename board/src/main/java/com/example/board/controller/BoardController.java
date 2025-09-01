@@ -43,7 +43,7 @@ public class BoardController {
         Long bid = b.getPostId();
         int likeCount = boardLikeService.getLikeCount(bid);
         int commentCount = (int) commentRepository.countByBoardId(bid);
-        int scrapCount = (int) scrapRepository.countByBoardId(bid);
+        int scrapCount = (int) scrapRepository.countByBoard_PostId(bid);
         return BoardResponseDto.from(b, likeCount, commentCount, scrapCount);
     }
 
@@ -64,7 +64,7 @@ public class BoardController {
 
         int likeCount = boardLikeService.getLikeCount(id);
         int commentCount = (int) commentRepository.countByBoardId(id);
-        int scrapCount = (int) scrapRepository.countByBoardId(id);
+        int scrapCount = (int) scrapRepository.countByBoard_PostId(id);
 
         return ResponseEntity.ok(BoardResponseDto.from(board, likeCount, commentCount, scrapCount));
     }
@@ -225,21 +225,21 @@ public class BoardController {
     }
 
     // 내가 댓글 단 게시글 목록 (중복 제거)
+    // BoardController.java
     @GetMapping("/commented")
     public ResponseEntity<List<BoardResponseDto>> myCommentedBoards(
             @AuthenticationPrincipal UserDetails userDetails) {
 
         if (userDetails == null) return ResponseEntity.status(401).build();
 
-        var currentUser = userRepository.findByUserId(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("사용자 없음"));
-
-        var boards = commentRepository.findDistinctBoardsCommentedBy(currentUser);
+        String userId = userDetails.getUsername();        // ✅ 핵심: userId 문자열
+        var boards = commentRepository.findDistinctBoardsCommentedBy(userId);
 
         var dtos = boards.stream()
-                .map(this::toDtoWithCounts)
-                .collect(Collectors.toList());
+                .map(this::toDtoWithCounts)              // like/댓글/스크랩 카운트 포함
+                .toList();
 
         return ResponseEntity.ok(dtos);
     }
+
 }

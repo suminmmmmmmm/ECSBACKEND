@@ -13,11 +13,14 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     List<Comment> findByBoard(Board board);
 
-    @Query("select distinct c.board " +
-            "from Comment c " +
-            "where c.user = :user " +
-            "order by c.board.createdDate desc")
-    List<Board> findDistinctBoardsCommentedBy(@Param("user") User user);
+    // 사용자가 댓글 단 게시판 목록 (최근 작성된 게시판순)
+    @Query("""
+           select distinct c.board
+           from Comment c
+           where c.authorUserId = :userId
+           order by c.board.createdDate desc
+           """)
+    List<Board> findDistinctBoardsCommentedBy(@Param("userId") String userId);
 
     @Query("select count(c) from Comment c where c.board.postId = :boardId")
     long countByBoardId(@Param("boardId") Long boardId);

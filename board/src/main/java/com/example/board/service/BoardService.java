@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -65,5 +66,12 @@ public class BoardService {
     /** 페이지 조회 */
     public Page<Board> findAllPaged(Pageable pageable) {
         return boardRepository.findAll(pageable);
+    }
+
+
+
+    // 본인 글 전체
+    public List<Board> findAllByWriter(String writer) {
+        return boardRepository.findByWriterOrderByCreatedDateDesc(writer);
     }
 }
