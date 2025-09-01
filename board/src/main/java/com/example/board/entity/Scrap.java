@@ -4,19 +4,17 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Getter
-@Setter
+@Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Scrap {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    private User user;
+    private Board board;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    private Board board;
+    private User user;
 }

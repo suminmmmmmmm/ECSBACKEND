@@ -6,11 +6,17 @@ import com.example.board.entity.Comment;
 import com.example.board.entity.User;
 import com.example.board.repository.BoardRepository;
 import com.example.board.repository.CommentRepository;
+import com.example.board.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,50 +25,74 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final BoardRepository boardRepository;
+    private final UserRepository userRepository;
 
-    // 댓글 작성
-    public Comment addComment(Long boardId, CommentDto dto, User currentUser) {
-        Board board = boardRepository.findById(boardId)
-                .orElseThrow(() -> new RuntimeException("게시글 없음"));
+    // 댓글 작성 (writer는 서버에서 채움: nickname, authorUserId 저장)
+    @Transactional
+    public Comment addComment(Long boardId, CommentDto dto) {
+        Board board = boardRepository.findById(boardId).orElseThrow();
+
+        String userId = currentUserId();                              // JWT principal = userId
+        User user = userRepository.findByUserId(userId).orElseThrow();
+        String nickname = user.getNickname();
 
         Comment comment = Comment.builder()
                 .content(dto.getContent())
-                .user(currentUser)
+                .writer(nickname)              // 표시용: 닉네임
+                .authorUserId(userId)          // 권한/소유권 판단용
                 .createdDate(LocalDateTime.now())
                 .board(board)
                 .build();
 
+        if (dto.getParentId() != null) {
+            Comment parent = commentRepository.findById(dto.getParentId()).orElseThrow();
+            comment.setParent(parent);
+        }
+
         return commentRepository.save(comment);
     }
 
-    // 댓글 조회
     public List<CommentDto> getCommentsByBoard(Long boardId) {
-        Board board = boardRepository.findById(boardId)
-                .orElseThrow(() -> new RuntimeException("게시글 없음"));
+        Board board = boardRepository.findById(Long.valueOf(String.valueOf(boardId))).orElseThrow();
         List<Comment> comments = commentRepository.findByBoard(board);
 
-        // 단순히 1-depth 댓글만 반환
-        return comments.stream().map(this::convertToDto).collect(Collectors.toList());
+        // 루트만 추려서 트리화, 생성일 정렬(선택)
+        return comments.stream()
+                .filter(c -> c.getParent() == null)
+                .sorted(Comparator.comparing(Comment::getCreatedDate))
+                .map(this::convertToDtoWithChildren)
+                .collect(Collectors.toList());
     }
 
-    // 댓글 삭제 (본인만)
-    public void deleteComment(Long commentId, User currentUser) {
+    @Transactional
+    public void deleteComment(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("댓글 없음"));
+                .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
 
-        if (!comment.getUser().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("본인 댓글만 삭제할 수 있습니다.");
-        }
+        // 소유자만 삭제 가능 (필요 시 주석 해제)
+        // if (!comment.getAuthorUserId().equals(currentUserId())) {
+        //     throw new AccessDeniedException("내 댓글만 삭제할 수 있습니다.");
+        // }
 
-        commentRepository.delete(comment);
+        commentRepository.delete(comment); // 자식은 cascade로 처리
     }
 
     private CommentDto convertToDto(Comment comment) {
         return CommentDto.builder()
                 .id(comment.getId())
                 .content(comment.getContent())
-                .writer(comment.getUser().getNickname()) // 작성자 닉네임 노출
+                .writer(comment.getWriter()) // 화면 표시는 닉네임
                 .createdDate(comment.getCreatedDate())
+                .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
+                .children(comment.getChildren().stream()
+                        .sorted(Comparator.comparing(Comment::getCreatedDate))
+                        .map(this::convertToDtoWithChildren)
+                        .collect(Collectors.toList()))
                 .build();
+    }
+
+    private String currentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth.getName(); // CustomUserDetailsService에서 withUsername(userId)로 설정했으므로 userId 반환
     }
 }

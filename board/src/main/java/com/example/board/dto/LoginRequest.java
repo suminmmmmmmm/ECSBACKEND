@@ -1,33 +1,28 @@
 package com.example.board.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class LoginRequest {
 
-    private String username;
+    // 클라이언트는 userId로 보내게 하고,
+    // 기존 username 키로 와도 매핑되도록 JsonAlias 추가
+    @JsonProperty("userId")
+    @JsonAlias({"username"})
+    private String userId;
+
     private String password;
 
-    // 기본 생성자 (JSON 매핑에 필요)
     public LoginRequest() {}
 
-    // 생성자
-    public LoginRequest(String username, String password) {
-        this.username = username;
+    public LoginRequest(String userId, String password) {
+        this.userId = userId;
         this.password = password;
     }
 
-    // getter, setter
-    public String getUsername() {
-        return username;
-    }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
 }
