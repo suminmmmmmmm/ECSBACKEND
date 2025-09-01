@@ -3,6 +3,7 @@ package com.example.board.service;
 import com.example.board.dto.CommentDto;
 import com.example.board.entity.Board;
 import com.example.board.entity.Comment;
+import com.example.board.entity.User;
 import com.example.board.repository.BoardRepository;
 import com.example.board.repository.CommentRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,59 +20,49 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final BoardRepository boardRepository;
 
-    public Comment addComment(Long boardId, CommentDto dto) {
-        Board board = boardRepository.findById(Long.valueOf(String.valueOf(boardId))).orElseThrow();
+    // 댓글 작성
+    public Comment addComment(Long boardId, CommentDto dto, User currentUser) {
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new RuntimeException("게시글 없음"));
 
         Comment comment = Comment.builder()
                 .content(dto.getContent())
-                .writer(dto.getWriter())
+                .user(currentUser)
                 .createdDate(LocalDateTime.now())
                 .board(board)
                 .build();
 
-        // 대댓글일 경우 parent 설정
-        if (dto.getParentId() != null) {
-            Comment parent = commentRepository.findById(dto.getParentId()).orElseThrow();
-            comment.setParent(parent);
-        }
-
-
         return commentRepository.save(comment);
     }
 
+    // 댓글 조회
     public List<CommentDto> getCommentsByBoard(Long boardId) {
-        Board board = boardRepository.findById(Long.valueOf(String.valueOf(boardId))).orElseThrow();
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new RuntimeException("게시글 없음"));
         List<Comment> comments = commentRepository.findByBoard(board);
 
-        // 계층 구조 정리
-        List<Comment> roots = comments.stream()
-                .filter(c -> c.getParent() == null)
-                .collect(Collectors.toList());
-
-        return roots.stream().map(this::convertToDtoWithChildren).collect(Collectors.toList());
+        // 단순히 1-depth 댓글만 반환
+        return comments.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 
-    public void deleteComment(Long commentId,String currentUserName) {
-        Comment comment = commentRepository.findById(commentId).orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
-        if(comment.getWriter() == null || !comment.getWriter().equals(currentUserName)) {
-            throw new SecurityException("본인의 댓글만 삭제할 수 있습니다.");
+    // 댓글 삭제 (본인만)
+    public void deleteComment(Long commentId, User currentUser) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("댓글 없음"));
+
+        if (!comment.getUser().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("본인 댓글만 삭제할 수 있습니다.");
         }
-        commentRepository.delete(comment);//자식 댓글도 cascase로 자동 삭제됨
+
+        commentRepository.delete(comment);
     }
 
-    private CommentDto convertToDtoWithChildren(Comment comment) {
+    private CommentDto convertToDto(Comment comment) {
         return CommentDto.builder()
                 .id(comment.getId())
                 .content(comment.getContent())
-                .writer(comment.getWriter())
+                .writer(comment.getUser().getNickname()) // 작성자 닉네임 노출
                 .createdDate(comment.getCreatedDate())
-                .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
-                .children(comment.getChildren().stream()
-                        .map(this::convertToDtoWithChildren)
-                        .collect(Collectors.toList()))
                 .build();
     }
-
-
-
 }

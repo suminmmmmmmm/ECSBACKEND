@@ -24,7 +24,9 @@ public class Comment{
 
     private String content;
 
-    private String writer;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false) // FK(users.id)
+    private User user;
 
     private LocalDateTime createdDate;
 
