@@ -232,7 +232,7 @@ public class BoardController {
 
         if (userDetails == null) return ResponseEntity.status(401).build();
 
-        String userId = userDetails.getUsername();        // ✅ 핵심: userId 문자열
+        String userId = userDetails.getUsername();        // 핵심: userId 문자열
         var boards = commentRepository.findDistinctBoardsCommentedBy(userId);
 
         var dtos = boards.stream()
