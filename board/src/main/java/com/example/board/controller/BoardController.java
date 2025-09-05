@@ -68,7 +68,7 @@ public class BoardController {
 
         return ResponseEntity.ok(BoardResponseDto.from(board, likeCount, commentCount, scrapCount));
     }
-
+//
     // 게시글 작성 (토큰 사용자 닉네임을 writer로 저장)
     @PostMapping(consumes = {"multipart/form-data"})
     public ResponseEntity<Board> create(
