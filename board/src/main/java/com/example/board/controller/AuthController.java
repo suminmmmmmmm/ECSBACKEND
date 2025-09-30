@@ -58,7 +58,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(
             @RequestParam(value = "userId", required = false) String userId,
-            @RequestParam(value = "username", required = false) String username,
+            //@RequestParam(value = "username", required = false) String username,
             @RequestParam String password) {
 
         String id = (userId != null && !userId.isBlank()) ? userId : username;
