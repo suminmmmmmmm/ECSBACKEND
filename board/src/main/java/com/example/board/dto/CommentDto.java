@@ -21,5 +21,7 @@ public class CommentDto {
     public Long getParentId() {
         return parentId;
     }
+
+
 }
 

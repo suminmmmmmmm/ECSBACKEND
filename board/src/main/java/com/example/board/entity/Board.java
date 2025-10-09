@@ -26,6 +26,7 @@ public class Board {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long postId;
 
+    @Column(length = 100, nullable = false)
     private String title;
 
     @Column(length = 200, nullable = false)
@@ -65,4 +66,12 @@ public class Board {
         this.title = title;
         this.content = content;
     }
+
+
+    @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> comments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Scrap> scraps = new ArrayList<>();
+
 }

@@ -2,6 +2,8 @@ package com.example.board.controller;
 
 import java.util.List;
 
+import com.example.board.dto.BoardResponseDto;
+import com.example.board.entity.Board;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.board.dto.ScrapResponseDto;
 import com.example.board.entity.Scrap;
 import com.example.board.service.BoardLikeService;
 import com.example.board.service.ScrapService;
@@ -47,29 +48,28 @@ public class ScrapController {
 
     /** 내 스크랩 목록 */
     @GetMapping
-    public ResponseEntity<List<ScrapResponseDto>> getMyScraps(
+    public ResponseEntity<List<BoardResponseDto>> getMyScraps(
             @AuthenticationPrincipal UserDetails userDetails) {
 
         String userId = userDetails.getUsername();
 
-        List<Scrap> scraps = scrapService.getUserScraps(userId);   // 서비스에서 userId로 조회
+        // ① 로그인한 사용자의 scrap 목록만 조회
+        List<Scrap> scraps = scrapService.getUserScraps(userId);
 
-        List<ScrapResponseDto> result = scraps.stream().map(scrap ->
-                ScrapResponseDto.builder()
-                        .scrapId(scrap.getId())
-                        .boardId(scrap.getBoard().getPostId())
-                        .likeCount(boardLikeService.getLikeCount(scrap.getBoard().getPostId()))
-                        .boardTitle(scrap.getBoard().getTitle())
-                        .boardWriter(scrap.getBoard().getWriter())
-                        .boardContent(scrap.getBoard().getContent())
-                        .createdDate(scrap.getBoard().getCreatedDate())
-                        .modifiedDate(scrap.getBoard().getModifiedDate())
-                        .build()
-        ).toList();
+        // ② scrap → board → BoardResponseDto 변환
+        List<BoardResponseDto> result = scraps.stream()
+                .map(scrap -> {
+                    Board board = scrap.getBoard();
+                    int likeCount = boardLikeService.getLikeCount(board.getPostId());
+                    int commentCount = board.getComments().size();
+                    int scrapCount = board.getScraps().size();
+
+                    return BoardResponseDto.from(board, likeCount, commentCount, scrapCount);
+                })
+                .toList();
 
         return ResponseEntity.ok(result);
     }
-
     /** 스크랩 삭제 */
     @DeleteMapping("/{scrapId}")
     public ResponseEntity<Void> deleteScrap(@PathVariable Long scrapId) {

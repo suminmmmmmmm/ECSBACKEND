@@ -4,6 +4,7 @@ import com.example.board.dto.BoardResponseDto;
 import com.example.board.dto.CommentDto;
 import com.example.board.entity.Board;
 import com.example.board.entity.Comment;
+import com.example.board.entity.Scrap;
 import com.example.board.entity.User;
 import com.example.board.repository.BoardRepository;
 import com.example.board.repository.CommentRepository;
@@ -53,6 +54,15 @@ public class CommentService {
         }
 
         return commentRepository.save(comment);
+    }
+
+
+    /** 내 댓글 목록 */
+    @Transactional(readOnly = true)
+    public List<Comment> getUserComments(String userId) {
+        User user = userRepository.findByUserId(userId).orElseThrow();
+        return commentRepository.findByAuthorUserId(userId);
+     //   return commentRepository.findByAuthorUserId(userId);
     }
 
     // 게시글의 댓글 트리 조회 (필요 시 정렬 추가)

@@ -1,15 +1,13 @@
 package com.example.board.controller;
 
+import com.example.board.dto.SignupRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
 
 import com.example.board.dto.LoginResponse;
 import com.example.board.repository.UserRepository;
@@ -27,12 +25,29 @@ public class AuthController {
         this.userRepository = userRepository;
     }
 
+//    @PostMapping("/signup")
+//    public ResponseEntity<String> signup(@RequestParam String userId,
+//                                         @RequestParam String password,
+//                                         @RequestParam String nickname) {
+//        try {
+//            authService.signup(userId, password, nickname);
+//            return ResponseEntity.ok("회원가입 완료!");
+//        } catch (RuntimeException e) {
+//            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+//        }
+//    }
+
     @PostMapping("/signup")
-    public ResponseEntity<String> signup(@RequestParam String userId,
-                                         @RequestParam String password,
-                                         @RequestParam String nickname) {
+    public ResponseEntity<String> signup(@Valid @RequestBody SignupRequest request,
+                                         BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            // ❌ 유효성 실패 시 첫 번째 에러 메시지 반환
+            String errorMessage = bindingResult.getAllErrors().get(0).getDefaultMessage();
+            return ResponseEntity.badRequest().body(errorMessage);
+        }
+
         try {
-            authService.signup(userId, password, nickname);
+            authService.signup(request.getUserId(), request.getPassword(), request.getNickname());
             return ResponseEntity.ok("회원가입 완료!");
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());

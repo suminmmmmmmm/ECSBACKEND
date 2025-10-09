@@ -3,6 +3,7 @@ package com.example.board.controller;
 import com.example.board.dto.BoardResponseDto;
 import com.example.board.entity.Board;
 import com.example.board.entity.BoardImage;
+import com.example.board.entity.Scrap;
 import com.example.board.repository.BoardRepository;
 import com.example.board.repository.CommentRepository;
 import com.example.board.repository.ScrapRepository;
@@ -58,7 +59,9 @@ public class BoardController {
 
     // 특정 게시글 조회
     @GetMapping("/{id}")
+    //엔티티를 조회해서 디티오로 변환
     public ResponseEntity<BoardResponseDto> detail(@PathVariable Long id) {
+        //디비에서 꺼내오기
         Board board = boardService.findById(id);
         if (board == null) return ResponseEntity.notFound().build();
 
@@ -81,6 +84,7 @@ public class BoardController {
         if (userDetails == null) return ResponseEntity.status(401).build();
 
         String username = userDetails.getUsername();
+        // 로그인 된 사용자만 글 작성 가능하도록하기 위해서 username을 넘겨줌
         String writer = userRepository.findByUserId(username)
                 .orElseThrow(() -> new RuntimeException("사용자 없음"))
                 .getNickname();
@@ -153,6 +157,9 @@ public class BoardController {
         boardService.delete(id);
         return ResponseEntity.ok("게시글이 성공적으로 삭제되었습니다.");
     }
+
+//    조회(detail)는 클라이언트가 게시글 정보를 필요로 함 → 엔티티 내용을 DTO로 가공해서 반환해야 함.
+//    삭제(delete)는 클라이언트가 "이 작업이 성공했는지" 여부만 알면 됨 → 단순 성공 메시지나 상태 코드만 내려주면 충분.
 
     // 게시물 좋아요 토글
     @PostMapping("/{boardId}/like")
@@ -240,6 +247,31 @@ public class BoardController {
                 .toList();
 
         return ResponseEntity.ok(dtos);
+    }
+
+
+    /** 내가 좋아요한 게시글 목록 */
+    @GetMapping("/my/likeboard")
+    public ResponseEntity<List<BoardResponseDto>> getMyLikedBoards(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String userId = userDetails.getUsername();
+
+        // ① 로그인한 사용자의 scrap 목록만 조회
+        List<Board> boards = boardLikeService.getUserLikedBoards(userId);
+
+        // ② scrap → board → BoardResponseDto 변환
+        List<BoardResponseDto> result = boards.stream()
+                .map(board -> {
+                    int likeCount = boardLikeService.getLikeCount(board.getPostId());
+                    int commentCount = board.getComments().size();
+                    int scrapCount = board.getScraps().size();
+
+                    return BoardResponseDto.from(board, likeCount, commentCount, scrapCount);
+                })
+                .toList();
+
+        return ResponseEntity.ok(result);
     }
 
 }

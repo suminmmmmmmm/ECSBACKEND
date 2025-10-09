@@ -9,6 +9,8 @@ import com.example.board.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class BoardLikeService {
@@ -62,4 +64,11 @@ public class BoardLikeService {
         return boardLikeRepository.findByBoardAndUser(board, user).isPresent();
     }
 
+    public List<Board> getUserLikedBoards(String userId) {
+        User user = userRepository.findByUserId(userId).orElseThrow();
+        List<BoardLike> likes = boardLikeRepository.findAllByUser(user);
+        return likes.stream()
+                .map(BoardLike::getBoard)
+                .toList();
+    }
 }

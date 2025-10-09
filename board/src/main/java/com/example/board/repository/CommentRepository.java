@@ -12,7 +12,7 @@ import java.util.List;
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     List<Comment> findByBoard(Board board);
-
+    List<Comment> findByAuthorUserId(String userId);
     // 사용자가 댓글 단 게시판 목록 (최근 작성된 게시판순)
     @Query("""
            select distinct c.board
@@ -24,4 +24,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     @Query("select count(c) from Comment c where c.board.postId = :boardId")
     long countByBoardId(@Param("boardId") Long boardId);
+
+  //  List<Comment> findAllByUser(User user);
 }
