@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Suggest Demo</title>
+<style>
+  body { font-family: system-ui, sans-serif; padding: 24px; }
+  #q { font-size: 18px; padding: 6px 8px; width: 320px; }
+  #list { margin-top: 12px; padding-left: 16px; }
+  #list li { margin: 4px 0; }
+  #log { margin-top: 12px; color: #666; font-size: 13px; white-space: pre-wrap; }
+</style>
+
+<input id="q" placeholder="입력하세요 (예: 다)" autocomplete="off" />
+<ul id="list"></ul>
+<div id="log"></div>
+
+<script>
+let t;
+const q = document.getElementById('q');
+const ul = document.getElementById('list');
+const log = document.getElementById('log');
+
+function println(x){ log.textContent = (log.textContent ? log.textContent + "\n" : "") + x; }
+
+q.addEventListener('input', () => {
+  clearTimeout(t);
+  const v = q.value.trim();
+
+  if (!v) { // 입력이 비었으면 리스트 비우고 종료
+    ul.innerHTML = ''; 
+    println('입력 비어있음');
+    return;
+  }
+
+  println(`입력: ${v}`);
+  t = setTimeout(async () => {
+    try {
+      const url = `/api/suggest?q=${encodeURIComponent(v)}&limit=10`;
+      println(`요청: ${url}`);
+      const r = await fetch(url);
+      println(`응답코드: ${r.status}`);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      println(`응답 데이터 길이: ${data.length}`);
+      ul.innerHTML = data.map(d => `<li>${hl(d.term, v)}</li>`).join('');
+      if (data.length === 0) ul.innerHTML = `<li style="color:#999">결과 없음</li>`;
+    } catch (err) {
+      ul.innerHTML = `<li style="color:#c00">에러: ${err.message}</li>`;
+      println('에러: ' + err.message);
+      console.error(err);
+    }
+  }, 150);
+});
+
+function hl(term, q) {
+  const i = term.indexOf(q);
+  if (i < 0) return term;
+  return term.slice(0, i) + '<b>' + q + '</b>' + term.slice(i + q.length);
+}
+
+// 페이지 진입 시 포커스
+q.focus();
+</script>
