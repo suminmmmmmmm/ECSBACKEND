@@ -15,60 +15,46 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BoardLikeService {
 
-    
-
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
     private final BoardLikeRepository boardLikeRepository;
 
-    /**
-     * 게시글 좋아요 토글 (좋아요 상태 변경)
-     * @param postId 게시글 ID
-     * @param userId 사용자 ID
-     * @return true = 좋아요 추가, false = 좋아요 취소
-     */
+    /**  좋아요 토글 (추가/취소) */
     public boolean toggleLike(Long postId, String userId) {
         Board board = boardRepository.findById(postId).orElseThrow();
         User user = userRepository.findByUserId(userId).orElseThrow();
 
         return boardLikeRepository.findByBoardAndUser(board, user)
                 .map(like -> {
-                    boardLikeRepository.delete(like); // 이미 좋아요 → 취소
-                    return false;
+                    boardLikeRepository.delete(like);
+                    return false; // 좋아요 취소
                 })
                 .orElseGet(() -> {
-                    boardLikeRepository.save(
-                            BoardLike.builder()
-                                    .board(board)
-                                    .user(user)
-                                    .build()
-                    );
-                    return true;
+                    boardLikeRepository.save(BoardLike.builder()
+                            .board(board)
+                            .user(user)
+                            .build());
+                    return true; // 좋아요 추가
                 });
     }
 
-    /**
-     * 특정 게시글의 좋아요 개수 조회
-     */
+    /**  좋아요 개수 조회 */
     public int getLikeCount(Long postId) {
         Board board = boardRepository.findById(postId).orElseThrow();
         return boardLikeRepository.countByBoard(board);
     }
 
-    /**
-     * 사용자가 특정 게시글에 좋아요를 눌렀는지 확인
-     */
+    /**  사용자가 특정 게시글에 좋아요했는지 확인 */
     public boolean isLiked(Long postId, String userId) {
         Board board = boardRepository.findById(postId).orElseThrow();
         User user = userRepository.findByUserId(userId).orElseThrow();
         return boardLikeRepository.findByBoardAndUser(board, user).isPresent();
     }
 
+    /**  사용자가 좋아요한 게시글 목록 */
     public List<Board> getUserLikedBoards(String userId) {
         User user = userRepository.findByUserId(userId).orElseThrow();
         List<BoardLike> likes = boardLikeRepository.findAllByUser(user);
-        return likes.stream()
-                .map(BoardLike::getBoard)
-                .toList();
+        return likes.stream().map(BoardLike::getBoard).toList();
     }
 }

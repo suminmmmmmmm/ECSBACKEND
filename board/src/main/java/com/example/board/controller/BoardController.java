@@ -3,13 +3,13 @@ package com.example.board.controller;
 import com.example.board.dto.BoardResponseDto;
 import com.example.board.entity.Board;
 import com.example.board.entity.BoardImage;
-import com.example.board.entity.Scrap;
 import com.example.board.repository.BoardRepository;
 import com.example.board.repository.CommentRepository;
 import com.example.board.repository.ScrapRepository;
 import com.example.board.repository.UserRepository;
 import com.example.board.service.BoardLikeService;
 import com.example.board.service.BoardService;
+import com.example.board.service.ScrapService;
 import com.example.board.config.S3UploadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,45 +34,53 @@ public class BoardController {
     private final BoardService boardService;
     private final S3UploadService s3UploadService;
     private final BoardLikeService boardLikeService;
-    private final BoardRepository boardRepository; // (필요 없으면 제거해도 됨)
+    private final ScrapService scrapService;
+    private final BoardRepository boardRepository;
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
     private final ScrapRepository scrapRepository;
 
-    // 공통 매핑 헬퍼: 좋아요/댓글/스크랩 수 포함 DTO 변환
-    private BoardResponseDto toDtoWithCounts(Board b) {
-        Long bid = b.getPostId();
-        int likeCount = boardLikeService.getLikeCount(bid);
-        int commentCount = (int) commentRepository.countByBoardId(bid);
-        int scrapCount = (int) scrapRepository.countByBoard_PostId(bid);
-        return BoardResponseDto.from(b, likeCount, commentCount, scrapCount);
+    /**  공통 변환 헬퍼: 좋아요/스크랩 여부 + 카운트 포함 */
+    private BoardResponseDto toDtoWithCounts(Board board, UserDetails userDetails) {
+        Long boardId = board.getPostId();
+        int likeCount = boardLikeService.getLikeCount(boardId);
+        int commentCount = (int) commentRepository.countByBoardId(boardId);
+        int scrapCount = (int) scrapRepository.countByBoard_PostId(boardId);
+
+        boolean isLiked = false;
+        boolean isScrapped = false;
+
+        if (userDetails != null) {
+            String userId = userDetails.getUsername();
+            isLiked = boardLikeService.isLiked(boardId, userId);
+            isScrapped = scrapService.isScrapped(boardId, userId);
+        }
+
+        return BoardResponseDto.from(board, isLiked, isScrapped, likeCount, commentCount, scrapCount);
     }
 
-    // 모든 게시글 조회 (엔티티 → DTO + 카운트 포함)
+    /**  전체 게시글 조회 */
     @GetMapping
-    public ResponseEntity<List<BoardResponseDto>> list() {
+    public ResponseEntity<List<BoardResponseDto>> list(@AuthenticationPrincipal UserDetails userDetails) {
         List<BoardResponseDto> dtos = boardService.findAll().stream()
-                .map(this::toDtoWithCounts)
-                .collect(Collectors.toList());
+                .map(board -> toDtoWithCounts(board, userDetails))
+                .toList();
         return ResponseEntity.ok(dtos);
     }
 
-    // 특정 게시글 조회
+    /**  특정 게시글 조회 */
     @GetMapping("/{id}")
-    //엔티티를 조회해서 디티오로 변환
-    public ResponseEntity<BoardResponseDto> detail(@PathVariable Long id) {
-        //디비에서 꺼내오기
+    public ResponseEntity<BoardResponseDto> detail(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
         Board board = boardService.findById(id);
         if (board == null) return ResponseEntity.notFound().build();
 
-        int likeCount = boardLikeService.getLikeCount(id);
-        int commentCount = (int) commentRepository.countByBoardId(id);
-        int scrapCount = (int) scrapRepository.countByBoard_PostId(id);
-
-        return ResponseEntity.ok(BoardResponseDto.from(board, likeCount, commentCount, scrapCount));
+        return ResponseEntity.ok(toDtoWithCounts(board, userDetails));
     }
 
-    // 게시글 작성 (토큰 사용자 닉네임을 writer로 저장)
+    /**  게시글 작성 */
     @PostMapping(consumes = {"multipart/form-data"})
     public ResponseEntity<Board> create(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -84,7 +92,6 @@ public class BoardController {
         if (userDetails == null) return ResponseEntity.status(401).build();
 
         String username = userDetails.getUsername();
-        // 로그인 된 사용자만 글 작성 가능하도록하기 위해서 username을 넘겨줌
         String writer = userRepository.findByUserId(username)
                 .orElseThrow(() -> new RuntimeException("사용자 없음"))
                 .getNickname();
@@ -95,6 +102,7 @@ public class BoardController {
                 .writer(writer)
                 .build();
 
+        // 이미지 업로드
         List<BoardImage> images = new ArrayList<>();
         if (imageFiles != null) {
             for (MultipartFile file : imageFiles) {
@@ -110,60 +118,59 @@ public class BoardController {
         return ResponseEntity.ok(boardService.save(board));
     }
 
-    // 글 수정
+    /**  게시글 수정 */
     @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
     public ResponseEntity<Board> update(
             @PathVariable Long id,
-            @RequestParam String title,
-            @RequestParam String content,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String content,
             @RequestParam(required = false) List<Long> keepImageIds,
             @RequestParam(value = "images", required = false) List<MultipartFile> newImages
     ) throws IOException {
 
         Board board = boardService.findById(id);
-        board.setTitle(title);
-        board.setContent(content);
 
-        // 기존 이미지 중 유지할 이미지 ID를 제외하고 삭제
+        if (title != null && !title.isBlank()) board.setTitle(title);
+        if (content != null && !content.isBlank()) board.setContent(content);
+
+        // 기존 이미지 유지
+        List<Long> safeKeepIds = (keepImageIds == null) ? new ArrayList<>() : keepImageIds;
+
         if (board.getImages() != null) {
             Iterator<BoardImage> iterator = board.getImages().iterator();
             while (iterator.hasNext()) {
                 BoardImage image = iterator.next();
-                if (keepImageIds == null || !keepImageIds.contains(image.getId())) {
+                if (!safeKeepIds.contains(image.getId())) {
                     s3UploadService.deleteFile(image.getImageUrl());
                     iterator.remove();
                 }
             }
         }
 
-        // 새 이미지 업로드
+        // 새 이미지 추가
         if (newImages != null && !newImages.isEmpty()) {
             for (MultipartFile file : newImages) {
                 String imageUrl = s3UploadService.saveFile(file);
-                BoardImage image = BoardImage.builder()
+                board.getImages().add(BoardImage.builder()
                         .imageUrl(imageUrl)
                         .board(board)
-                        .build();
-                board.getImages().add(image);
+                        .build());
             }
         }
 
         return ResponseEntity.ok(boardService.save(board));
     }
 
-    // 게시글 삭제
+    /**  게시글 삭제 */
     @DeleteMapping("/{id}")
     public ResponseEntity<String> delete(@PathVariable Long id) {
         boardService.delete(id);
         return ResponseEntity.ok("게시글이 성공적으로 삭제되었습니다.");
     }
 
-//    조회(detail)는 클라이언트가 게시글 정보를 필요로 함 → 엔티티 내용을 DTO로 가공해서 반환해야 함.
-//    삭제(delete)는 클라이언트가 "이 작업이 성공했는지" 여부만 알면 됨 → 단순 성공 메시지나 상태 코드만 내려주면 충분.
-
-    // 게시물 좋아요 토글
+    /**  좋아요 토글 */
     @PostMapping("/{boardId}/like")
-    public ResponseEntity<Map<String, Object>> togglelike(
+    public ResponseEntity<Map<String, Object>> toggleLike(
             @PathVariable Long boardId,
             @AuthenticationPrincipal UserDetails userDetails) {
 
@@ -171,37 +178,40 @@ public class BoardController {
 
         boolean liked = boardLikeService.toggleLike(boardId, userDetails.getUsername());
         int count = boardLikeService.getLikeCount(boardId);
-        return ResponseEntity.ok(Map.of("liked", liked, "likecount", count));
+
+        return ResponseEntity.ok(Map.of("isLiked", liked, "likeCount", count));
     }
 
-    // 키워드 검색
+    /**  키워드 검색 */
     @GetMapping("/search")
-    public ResponseEntity<List<BoardResponseDto>> search(@RequestParam String keyword) {
+    public ResponseEntity<List<BoardResponseDto>> search(
+            @RequestParam String keyword,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
         String trimmedKeyword = keyword.trim();
-        if (trimmedKeyword.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
+        if (trimmedKeyword.isEmpty()) return ResponseEntity.badRequest().build();
 
         List<Board> boards = boardService.searchByTitle(trimmedKeyword);
         List<BoardResponseDto> responseDtos = boards.stream()
-                .map(this::toDtoWithCounts)
-                .collect(Collectors.toList());
+                .map(board -> toDtoWithCounts(board, userDetails))
+                .toList();
 
         return ResponseEntity.ok(responseDtos);
     }
 
-    // 게시물 페이지네이션
+    /**  페이지네이션 */
     @GetMapping("/paged")
     public ResponseEntity<Map<String, Object>> getBoardsPaged(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "3") int size) {
+            @RequestParam(defaultValue = "3") int size,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending());
         Page<Board> boardPage = boardService.findAllPaged(pageable);
 
         List<BoardResponseDto> dtos = boardPage.getContent().stream()
-                .map(this::toDtoWithCounts)
-                .collect(Collectors.toList());
+                .map(board -> toDtoWithCounts(board, userDetails))
+                .toList();
 
         Map<String, Object> response = new HashMap<>();
         response.put("boards", dtos);
@@ -212,7 +222,7 @@ public class BoardController {
         return ResponseEntity.ok(response);
     }
 
-    // 본인이 작성한 글 목록
+    /**  내가 작성한 게시글 */
     @GetMapping("/myboard")
     public ResponseEntity<List<BoardResponseDto>> myBoards(
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -225,53 +235,43 @@ public class BoardController {
                 .getNickname();
 
         List<BoardResponseDto> dtos = boardService.findAllByWriter(writer).stream()
-                .map(this::toDtoWithCounts)
-                .collect(Collectors.toList());
+                .map(board -> toDtoWithCounts(board, userDetails))
+                .toList();
 
         return ResponseEntity.ok(dtos);
     }
 
-    // 내가 댓글 단 게시글 목록 (중복 제거)
-    // BoardController.java
+    /**  내가 댓글 단 게시글 */
     @GetMapping("/commented")
     public ResponseEntity<List<BoardResponseDto>> myCommentedBoards(
             @AuthenticationPrincipal UserDetails userDetails) {
 
         if (userDetails == null) return ResponseEntity.status(401).build();
 
-        String userId = userDetails.getUsername();        // 핵심: userId 문자열
+        String userId = userDetails.getUsername();
         var boards = commentRepository.findDistinctBoardsCommentedBy(userId);
 
         var dtos = boards.stream()
-                .map(this::toDtoWithCounts)              // like/댓글/스크랩 카운트 포함
+                .map(board -> toDtoWithCounts(board, userDetails))
                 .toList();
 
         return ResponseEntity.ok(dtos);
     }
 
-
-    /** 내가 좋아요한 게시글 목록 */
+    /**  내가 좋아요한 게시글 */
     @GetMapping("/my/likeboard")
     public ResponseEntity<List<BoardResponseDto>> getMyLikedBoards(
             @AuthenticationPrincipal UserDetails userDetails) {
 
+        if (userDetails == null) return ResponseEntity.status(401).build();
         String userId = userDetails.getUsername();
 
-        // ① 로그인한 사용자의 scrap 목록만 조회
         List<Board> boards = boardLikeService.getUserLikedBoards(userId);
 
-        // ② scrap → board → BoardResponseDto 변환
         List<BoardResponseDto> result = boards.stream()
-                .map(board -> {
-                    int likeCount = boardLikeService.getLikeCount(board.getPostId());
-                    int commentCount = board.getComments().size();
-                    int scrapCount = board.getScraps().size();
-
-                    return BoardResponseDto.from(board, likeCount, commentCount, scrapCount);
-                })
+                .map(board -> toDtoWithCounts(board, userDetails))
                 .toList();
 
         return ResponseEntity.ok(result);
     }
-
 }

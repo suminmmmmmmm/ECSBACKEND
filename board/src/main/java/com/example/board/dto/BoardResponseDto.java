@@ -1,6 +1,7 @@
 package com.example.board.dto;
 
 import com.example.board.entity.Board;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.time.format.DateTimeFormatter;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @Builder
 public class BoardResponseDto {
+
     private Long postId;
     private String title;
     private String content;
@@ -20,17 +22,38 @@ public class BoardResponseDto {
     private String createdDate;
     private String modifiedDate;
     private List<BoardImageDto> images;
+
     private int likeCount;
+    @JsonProperty("isliked")
+    private boolean liked;
+    @JsonProperty("isScrapped")
+    private boolean scrapped;
     private int commentCount;
     private int scrapCount;
 
-    // 하위호환: 댓글/스크랩 카운트가 필요 없는 기존 호출부 지원
+
     public static BoardResponseDto from(Board board, int likeCount) {
-        return from(board, likeCount, 0, 0);
+        return from(board, false, false, likeCount, 0, 0);
     }
 
-    // 확장 버전: 좋아요/댓글/스크랩 카운트를 모두 포함
+
+    public static BoardResponseDto from(Board board, boolean liked, int likeCount) {
+        return from(board, liked, false, likeCount, 0, 0);
+    }
+
+
     public static BoardResponseDto from(Board board, int likeCount, int commentCount, int scrapCount) {
+        return from(board, false, false, likeCount, commentCount, scrapCount);
+    }
+
+
+    public static BoardResponseDto from(Board board,
+                                        boolean liked,
+                                        boolean scrapped,
+                                        int likeCount,
+                                        int commentCount,
+                                        int scrapCount) {
+
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
         List<BoardImageDto> imageDtos =
@@ -39,18 +62,21 @@ public class BoardResponseDto {
                         .map(BoardImageDto::from)
                         .collect(Collectors.toList());
 
-        String created = (board.getCreatedDate() != null) ? board.getCreatedDate().format(formatter) : null;
-        String modified = (board.getModifiedDate() != null) ? board.getModifiedDate().format(formatter) : null;
-
         return BoardResponseDto.builder()
                 .postId(board.getPostId())
                 .title(board.getTitle())
                 .content(board.getContent())
                 .author(board.getWriter())
-                .createdDate(created)
-                .modifiedDate(modified)
+                .createdDate(board.getCreatedDate() != null
+                        ? board.getCreatedDate().format(formatter)
+                        : null)
+                .modifiedDate(board.getModifiedDate() != null
+                        ? board.getModifiedDate().format(formatter)
+                        : null)
                 .images(imageDtos)
                 .likeCount(likeCount)
+                .liked(liked)
+                .scrapped(scrapped)
                 .commentCount(commentCount)
                 .scrapCount(scrapCount)
                 .build();
