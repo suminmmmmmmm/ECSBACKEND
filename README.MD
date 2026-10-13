@@ -21,19 +21,6 @@ Eye-Can-Speak
 | **백엔드**         | 김수민, 강수민 |
 | **프론트엔드**       | 노경미      |
 | **AI 및 아이 트래킹** | 한시진, 문현지 |
-### **01. 요구사항 정의서**
-
-
-### 02. 프로젝트 기능 흐름도
-
-
-### 02. 화면설계서
-
-https://www.figma.com/design/hwQ8SUPx2uMN10eqFmd1rr/Eye-Can-Speak?node-id=0-1&p=f&t=P6jefgxzxkdjtKCh-0
-
-### 03.  DB설계 및 프로젝트 구조
-
-
 ---
 
 ### 🧩 프로젝트 구조
